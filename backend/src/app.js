@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
 var fs = require('fs');
 var app = require('express')();
 

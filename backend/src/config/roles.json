@@ -4,5 +4,74 @@
         "allows": [
             "audits:read-all"
         ]
+    },
+
+  "contractor": {
+    "allows": [
+      "audits:add-vulnerability",
+      "audits:create",
+      "audits:read",
+      "audits:update",
+    
+      "vulnerabilities:read",
+      "vulnerabilities:update",
+      "vulnerabilities:create",
+      "vulnerability-updates:create",
+    
+      "vulnerability-types:read",
+      "vulnerability-categories:read",
+      "custom-fields:read",
+    
+      "languages:read",
+      "audit-types:read",
+      "vulnerability-types:read",
+      "vulnerability-categories:read",
+      "sections:read",
+      "custom-fields:read",
+    
+      "settings:read-public"
+
+
+    ]
+  },
+  "default_user": {
+    "allows": [
+      "vulnerabilities:create",
+      "audits:add-vulnerability",
+      "audits:create",
+      "audits:read",
+      "audits:update",
+      "audits:delete",
+    
+      "vulnerabilities:read",
+      "vulnerability-updates:create",
+    
+      "users:read",
+      "roles:read",
+    
+      "clients:create",
+      "clients:read",
+      "clients:update",
+      "clients:delete",
+    
+      "companies:create",
+      "companies:read",
+      "companies:update",
+      "companies:delete",
+    
+      "templates:read",
+    
+      "languages:read",
+      "audit-types:read",
+      "vulnerability-types:read",
+      "vulnerability-categories:read",
+      "sections:read",
+      "custom-fields:read",
+    
+      "settings:read-public"
+
+    ]
+
+
     }
 }

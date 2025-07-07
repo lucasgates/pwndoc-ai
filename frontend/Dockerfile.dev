@@ -5,3 +5,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 ENTRYPOINT ["npm", "run", "dev"]
+
+EXPOSE 8080
+
+ENV HOST=127.0.0.1
+ENV CHOKIDAR_USEPOLLING=true
+
+CMD ["npm", "run", "serve"]

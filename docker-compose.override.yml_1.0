@@ -1,0 +1,25 @@
+version: '3'
+services:
+  pwndoc-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - 8081:8081
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+  pwndoc-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    ports:
+      - 8081:8081
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+

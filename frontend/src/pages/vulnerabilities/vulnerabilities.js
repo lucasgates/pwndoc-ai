@@ -75,7 +75,11 @@ export default {
             vulnCategories: [],
             currentCategory: null,
             // Custom Fields
-            customFields: []
+            customFields: [],
+            // AI Modal
+            aiTitle: '',
+            aiDescription: '',
+            aiLanguage: ''
         }
     },
 
@@ -129,6 +133,15 @@ export default {
             var result = this.vulnTypes.filter(type => type.locale === this.dtLanguage).map(type => {return type.name})
             result.unshift('Undefined')
             return result
+        },
+
+        aiLanguageOptions: function() {
+            return this.languages.map(lang => {
+                return {
+                    label: lang.language,
+                    value: lang.locale
+                }
+            })
         }
     },
 
@@ -343,8 +356,9 @@ export default {
 
         cleanCurrentVulnerability: function() {
             this.cleanErrors();
-            this.currentVulnerability.cvss = '';
-            this.currentVulnerability.cvss4 = '';
+            this.currentVulnerability.cvssv3 = '';
+            this.currentVulnerability.cvssv4 = '';
+            this.currentVulnerability.cvssScore = '';
             this.currentVulnerability.priority = '';
             this.currentVulnerability.remediationComplexity = '';
             this.currentVulnerability.details = [];
@@ -498,6 +512,154 @@ export default {
                 this.$refs.updatesModal.show()
             else
                 this.$refs.editModal.show()
+        },
+
+        // AI Modal methods
+        showAiModal: function() {
+            this.aiTitle = '';
+            this.aiDescription = '';
+            this.aiLanguage = this.languages.length > 0 ? this.languages[0].locale : 'en';
+            this.$refs.aiModal.show();
+        },
+
+        closeAiModal: function() {
+            this.aiTitle = '';
+            this.aiDescription = '';
+            this.aiLanguage = this.languages.length > 0 ? this.languages[0].locale : 'en';
+        },
+
+        createWithAI: function() {
+            // Validate input
+            if (!this.aiTitle.trim() && !this.aiDescription.trim()) {
+                Notify.create({
+                    message: 'Please provide at least a title or description',
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right'
+                });
+                return;
+            }
+
+            // Show loading state
+            this.$q.loading.show({
+                message: 'Generating vulnerability content with AI...'
+            });
+
+            // Prepare request data
+            var requestData = {
+                title: this.aiTitle.trim(),
+                description: this.aiDescription.trim(),
+                locale: this.aiLanguage || 'en'
+            };
+
+            // Store the user input for fallback
+            var userTitle = this.aiTitle.trim();
+            var userDescription = this.aiDescription.trim();
+
+            // Call the AI generation API
+            this.$axios.post('vulnerabilities/ai-generate', requestData)
+            .then((response) => {
+                this.$q.loading.hide();
+                
+                if (response.data && response.data.datas) {
+                    var aiData = response.data.datas;
+                    
+                    // Pre-populate the vulnerability creation form with AI-generated content
+                    this.cleanCurrentVulnerability();
+                    this.currentLanguage = aiData.locale || this.dtLanguage;
+                    this.setCurrentDetails();
+                    
+                    // Set the generated content
+                    this.currentVulnerability.details[this.currentDetailsIndex].title = aiData.title;
+                    this.currentVulnerability.details[this.currentDetailsIndex].description = aiData.description;
+                    this.currentVulnerability.details[this.currentDetailsIndex].observation = aiData.observation;
+                    this.currentVulnerability.details[this.currentDetailsIndex].remediation = aiData.remediation;
+                    this.currentVulnerability.details[this.currentDetailsIndex].references = aiData.references || [];
+                    
+                    // Set CVSS fields if provided by AI
+                    if (aiData.cvssv3) {
+                        this.currentVulnerability.cvssv3 = aiData.cvssv3;
+                    }
+                    if (aiData.cvssv4) {
+                        this.currentVulnerability.cvssv4 = aiData.cvssv4;
+                    }
+                    // Note: Don't set cvssScore here - let the CVSS calculator component calculate it
+                    // from the vector string to maintain proper reactivity
+                    
+                    // Set remediation complexity if provided (1=Easy, 2=Medium, 3=Complex)
+                    if (aiData.remediationComplexity && aiData.remediationComplexity >= 1 && aiData.remediationComplexity <= 3) {
+                        this.currentVulnerability.remediationComplexity = aiData.remediationComplexity;
+                    }
+                    
+                    // Set remediation priority if provided (1=Low, 2=Medium, 3=High, 4=Urgent)
+                    if (aiData.priority && aiData.priority >= 1 && aiData.priority <= 4) {
+                        this.currentVulnerability.priority = aiData.priority;
+                    }
+                    
+                    // Close AI modal and open the regular creation modal for review
+                    this.$refs.aiModal.hide();
+                    this.$refs.createModal.show();
+                    
+                    // Force CVSS calculator and dropdowns to update after modal is shown
+                    this.$nextTick(() => {
+                        if (aiData.cvssv3) {
+                            // Force reactivity by setting the value again
+                            this.$set(this.currentVulnerability, 'cvssv3', aiData.cvssv3);
+                        }
+                        if (aiData.cvssv4) {
+                            this.$set(this.currentVulnerability, 'cvssv4', aiData.cvssv4);
+                        }
+                        // Ensure remediation complexity dropdown is properly updated
+                        if (aiData.remediationComplexity && aiData.remediationComplexity >= 1 && aiData.remediationComplexity <= 3) {
+                            this.$set(this.currentVulnerability, 'remediationComplexity', aiData.remediationComplexity);
+                        }
+                        // Ensure priority dropdown is properly updated
+                        if (aiData.priority && aiData.priority >= 1 && aiData.priority <= 4) {
+                            this.$set(this.currentVulnerability, 'priority', aiData.priority);
+                        }
+                    });
+                    
+                    Notify.create({
+                        message: 'AI content generated successfully! Please review and modify as needed.',
+                        color: 'positive',
+                        textColor: 'white',
+                        position: 'top-right',
+                        timeout: 5000
+                    });
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            })
+            .catch((error) => {
+                this.$q.loading.hide();
+                console.error('AI Generation Error:', error);
+                
+                // Instead of just showing an error, open the manual creation form
+                this.cleanCurrentVulnerability();
+                this.currentLanguage = this.dtLanguage;
+                this.setCurrentDetails();
+                
+                // Pre-populate with user's original input
+                if (userTitle) {
+                    this.currentVulnerability.details[this.currentDetailsIndex].title = userTitle;
+                }
+                if (userDescription) {
+                    this.currentVulnerability.details[this.currentDetailsIndex].description = userDescription;
+                }
+                
+                // Close AI modal and open the regular creation modal
+                this.$refs.aiModal.hide();
+                this.$refs.createModal.show();
+                
+                // Show a helpful message explaining the fallback
+                Notify.create({
+                    message: 'AI generation is currently unavailable. You can continue creating the vulnerability manually with your provided information.',
+                    color: 'warning',
+                    textColor: 'white',
+                    position: 'top-right',
+                    timeout: 6000
+                });
+            });
         }
     }
 }

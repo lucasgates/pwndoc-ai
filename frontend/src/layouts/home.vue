@@ -18,7 +18,7 @@
             <q-item-section>{{$t('nav.vulnerabilities')}}</q-item-section>
             </q-item>
 
-            <q-item to='/data' active-class="text-green">
+            <q-item to='/data' active-class="text-green"  v-if="UserService.isAllowed('templates:update')"  >
             <q-item-section avatar style="min-width:0" class="q-pr-sm">
                 <q-icon name="fa fa-database" />
             </q-item-section>
@@ -33,7 +33,7 @@
               </q-item-section>
               <q-item-section>{{$t('settings')}}</q-item-section>
               </q-item>
-            <q-btn-dropdown auto-close flat icon="fa fa-user-circle" no-caps :label="userService.user.username">
+            <q-btn-dropdown auto-close flat icon="fa fa-user-circle" no-caps :label="UserService.user.username">
                 <q-list>
                   <q-item clickable @click="toggleDarkMode()">
                     <q-item-section side><q-icon size="xs" :name="$q.dark.isActive ? 'fa fa-sun' : 'fa fa-moon'" /></q-item-section>
@@ -65,7 +65,7 @@ export default {
   name: 'LayoutHome',
   data () {
     return {
-      userService: UserService
+      UserService: UserService
     }
   },
 

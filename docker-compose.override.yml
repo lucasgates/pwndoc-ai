@@ -1,0 +1,34 @@
+services:
+  pwndoc-backend:
+    build: ./backend
+    container_name: pwndoc-backend
+    command: npm run dev  # Make sure your package.json has this
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    ports:
+      - 4242:4242
+    environment:
+      - DB_SERVER=mongo-pwndoc
+      - DB_NAME=pwndoc
+    networks:
+      backend:
+        aliases:
+          - pwndoc-backend-dev
+
+  pwndoc-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - 8081:8081
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+
+networks:
+  backend:
+    driver: bridge
+

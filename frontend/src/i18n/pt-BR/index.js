@@ -528,5 +528,9 @@ default: 'Padrão',
 audit: 'Auditoria',
 originalAudit: 'Auditoria Original',
 willBeRemoved: 'será removido',
-auditPhase: 'Fase da Auditoria'
+auditPhase: 'Fase da Auditoria',
+'Criar Vulnerabilidade': 'Criar Vulnerabilidade',
+'createVulnerabilityIA': 'Criar com IA',
+'vulnerabilityTitle': 'Título da vulnerabilidade',
+'describeVulnerability': 'Descreva a vulnerabilidade (opcional)'
 }

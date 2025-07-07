@@ -53,7 +53,7 @@ buttons
         >
             <q-tooltip anchor="bottom middle" self="center left" :delay="500" content-class="text-bold">{{$t('tooltip.retestSplitView')}}</q-tooltip> 
         </q-btn>
-        <q-btn color="positive" :label="$t('btn.save')+'(ctrl+s)'" no-caps @click="updateFinding()"  v-if="frontEndAuditState === AUDIT_VIEW_STATE.EDIT" />
+        <q-btn color="positive" :label="$t('btn.save')+'(CTRL+s)'" no-caps @click="updateFinding()"  v-if="frontEndAuditState === AUDIT_VIEW_STATE.EDIT" />
     </template>
 </breadcrumb>
 
@@ -140,6 +140,7 @@ buttons
                                 :commentIdList="$parent.commentIdList"
                                 />
                             </template>
+        <q-btn color="positive" :label="'AI Check'" no-caps @click="alert(123)" />
                             <template v-slot:label>
                                 <div id="descriptionField">
                                     {{$t('description')}} <span v-if="$settings.report.public.requiredFields.findingDescription" class="text-red">*</span>
