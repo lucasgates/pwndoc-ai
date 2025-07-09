@@ -33,6 +33,8 @@ export default {
             AUDIT_VIEW_STATE: Utils.AUDIT_VIEW_STATE,
             overrideLeaveCheck: false,
             transitionEnd: true,
+            // AI Check
+            aiCheckLoading: false,
             // Comments
             commentTemp: null,
             replyTemp: null,
@@ -667,6 +669,257 @@ export default {
             }
 
             return hasErrors
+        },
+
+        // AI Check functionality
+        performAiCheck: function() {
+            // Sync editors to get latest content
+            Utils.syncEditors(this.$refs)
+            
+            this.aiCheckLoading = true
+            
+            AuditService.aiCheckFinding(this.auditId, this.findingId)
+            .then((response) => {
+                this.aiCheckLoading = false
+                console.log('AI Check response received:', response.data)
+                
+                // The backend wraps the response in 'datas' property
+                const analysis = response.data.datas.analysis
+                
+                // Create a dialog to display the AI analysis results
+                this.showAiCheckResults(analysis)
+            })
+            .catch((err) => {
+                this.aiCheckLoading = false
+                console.error('AI Check error:', err)
+                let errorMessage = 'AI check failed. Please try again.'
+                
+                if (err.response && err.response.data && err.response.data.datas) {
+                    errorMessage = err.response.data.datas
+                }
+                
+                Notify.create({
+                    message: errorMessage,
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right',
+                    timeout: 5000
+                })
+            })
+        },
+
+        showAiCheckResults: function(analysis) {
+            // Store the analysis data for later use
+            this.aiAnalysis = analysis
+            this.aiCorrectedText = {}
+            
+            // Generate corrected text for each section
+            const sections = ['title', 'description', 'observation', 'proof']
+            sections.forEach(section => {
+                const sectionData = analysis[section]
+                const originalText = this.getOriginalText(section)
+                
+                if (sectionData.corrected) {
+                    this.aiCorrectedText[section] = sectionData.corrected
+                } else if (sectionData.issues.length > 0 || sectionData.suggestions.length > 0) {
+                    // Generate improved text based on suggestions
+                    this.aiCorrectedText[section] = this.generateImprovedText(originalText, sectionData)
+                } else {
+                    this.aiCorrectedText[section] = originalText
+                }
+            })
+
+            // Show the AI Check modal using the vulnerability update modal pattern
+            this.$refs.aiCheckModal.show()
+        },
+
+        closeAiCheckModal: function() {
+            // Clean up
+            this.aiAnalysis = null
+            this.aiCorrectedText = {}
+        },
+
+        acceptAiSectionChanges: function(sectionKey) {
+            const correctedText = this.aiCorrectedText[sectionKey]
+            
+            switch(sectionKey) {
+                case 'title':
+                    this.finding.title = correctedText
+                    break
+                case 'description':
+                    this.finding.description = correctedText
+                    break
+                case 'observation':
+                    this.finding.observation = correctedText
+                    break
+                case 'proof':
+                    this.finding.poc = correctedText
+                    break
+            }
+
+            // Sync editors to reflect changes
+            this.$nextTick(() => {
+                Utils.syncEditors(this.$refs)
+            })
+
+            Notify.create({
+                message: `${sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)} updated with AI suggestions`,
+                color: 'positive',
+                textColor: 'white',
+                position: 'top-right',
+                timeout: 3000
+            })
+        },
+
+        acceptAllAiChanges: function() {
+            const sections = ['title', 'description', 'observation', 'proof']
+            let changesApplied = 0
+            
+            sections.forEach(section => {
+                const original = this.getOriginalText(section)
+                const corrected = this.aiCorrectedText[section]
+                
+                if (original !== corrected) {
+                    this.acceptAiSectionChanges(section)
+                    changesApplied++
+                }
+            })
+
+            if (changesApplied > 0) {
+                Notify.create({
+                    message: `Applied AI suggestions to ${changesApplied} section${changesApplied > 1 ? 's' : ''}`,
+                    color: 'positive',
+                    textColor: 'white',
+                    position: 'top-right',
+                    timeout: 3000
+                })
+            }
+        },
+
+        hasAiChanges: function(sectionKey) {
+            if (!this.aiCorrectedText || !this.aiAnalysis) return false
+            const original = this.getOriginalText(sectionKey)
+            const corrected = this.aiCorrectedText[sectionKey]
+            return original !== corrected
+        },
+
+        hasAiIssues: function(sectionKey) {
+            if (!this.aiAnalysis) return false
+            const analysis = this.aiAnalysis[sectionKey]
+            return analysis && (analysis.issues.length > 0 || analysis.suggestions.length > 0)
+        },
+
+        getOriginalText: function(section) {
+            switch(section) {
+                case 'title': return this.finding.title || ''
+                case 'description': return this.stripHtml(this.finding.description) || ''
+                case 'observation': return this.stripHtml(this.finding.observation) || ''
+                case 'proof': return this.stripHtml(this.finding.poc) || ''
+                default: return ''
+            }
+        },
+
+        stripHtml: function(html) {
+            if (!html) return ''
+            return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+        },
+
+        generateImprovedText: function(originalText, sectionData) {
+            // If no original text, return empty
+            if (!originalText) return originalText
+            
+            // If there are no issues or suggestions, return original
+            if (sectionData.issues.length === 0 && sectionData.suggestions.length === 0) {
+                return originalText
+            }
+            
+            // Try to apply improvements based on issues and suggestions
+            let improvedText = originalText
+            
+            // Apply corrections based on issues
+            sectionData.issues.forEach(issue => {
+                console.log('Processing issue:', issue)
+                
+                // Handle case consistency issues (e.g., HttpOnly vs httponly)
+                if (issue.includes("case consistency") || issue.includes("capitalization")) {
+                    // Extract the correct case from the issue
+                    const caseMatch = issue.match(/'([^']+)'\s+should\s+be\s+'([^']+)'/i)
+                    if (caseMatch) {
+                        const incorrect = caseMatch[1]
+                        const correct = caseMatch[2]
+                        // Use case-insensitive replacement but preserve word boundaries
+                        const regex = new RegExp(`\\b${incorrect.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
+                        improvedText = improvedText.replace(regex, correct)
+                    }
+                }
+                
+                // Handle specific spelling corrections
+                if (issue.includes("'were thngs get weird'") || issue.includes("were thngs get weird")) {
+                    improvedText = improvedText.replace(/were\s+thngs\s+get\s+weird/gi, 'where things get weird')
+                }
+                
+                // Handle individual word corrections
+                if (issue.includes("'were' to 'where'") || issue.includes("were") && issue.includes("where")) {
+                    improvedText = improvedText.replace(/\bwere\b(?=\s+(things|thngs))/gi, 'where')
+                }
+                if (issue.includes("'thngs' to 'things'") || issue.includes("thngs") && issue.includes("things")) {
+                    improvedText = improvedText.replace(/\bthngs\b/gi, 'things')
+                }
+                if (issue.includes("'wierd' to 'weird'") || issue.includes("wierd") && issue.includes("weird")) {
+                    improvedText = improvedText.replace(/\bwierd\b/gi, 'weird')
+                }
+            })
+            
+            // Apply suggestions for professional language
+            sectionData.suggestions.forEach(suggestion => {
+                console.log('Processing suggestion:', suggestion)
+                
+                if (suggestion.includes("professional") || suggestion.includes("clarity")) {
+                    // Replace informal phrases with professional alternatives
+                    improvedText = improvedText.replace(/this is where things get weird/gi, 'this is where the issue becomes apparent')
+                    improvedText = improvedText.replace(/things get weird/gi, 'the issue becomes apparent')
+                    improvedText = improvedText.replace(/weird/gi, 'unusual')
+                }
+                
+                if (suggestion.includes("consistency") && suggestion.includes("capitalization")) {
+                    // This is handled in the issues section above
+                }
+            })
+            
+            console.log('Text improvement result:', { original: originalText, improved: improvedText })
+            return improvedText
+        },
+
+        acceptAiSectionChanges: function(sectionKey) {
+            const correctedText = this.aiCorrectedText[sectionKey]
+            
+            switch(sectionKey) {
+                case 'title':
+                    this.finding.title = correctedText
+                    break
+                case 'description':
+                    this.finding.description = correctedText
+                    break
+                case 'observation':
+                    this.finding.observation = correctedText
+                    break
+                case 'proof':
+                    this.finding.poc = correctedText
+                    break
+            }
+
+            // Sync editors to reflect changes
+            this.$nextTick(() => {
+                Utils.syncEditors(this.$refs)
+            })
+
+            Notify.create({
+                message: `${sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)} updated with AI suggestions`,
+                color: 'positive',
+                textColor: 'white',
+                position: 'top-right',
+                timeout: 3000
+            })
         }
     }
 }

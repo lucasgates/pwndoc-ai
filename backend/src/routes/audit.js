@@ -7,6 +7,7 @@ module.exports = function(app, io) {
     var _ = require('lodash');
     var utils = require('../lib/utils');
     var Settings = require('mongoose').model('Settings');
+    var OpenAI = require('openai');
 
     /* ### AUDITS LIST ### */
 
@@ -378,6 +379,246 @@ module.exports = function(app, io) {
             Response.Ok(res, msg);
         })
         .catch(err => Response.Internal(res, err))
+    });
+
+    // AI check finding content for spelling, grammar, and clarity
+    app.post("/api/audits/:auditId/findings/:findingId/ai-check", acl.hasPermission('audits:read'), async function(req, res) {
+        console.log('=== AI CHECK DEBUG START ===');
+        console.log('AI Check request received for audit:', req.params.auditId, 'finding:', req.params.findingId);
+        console.log('User token:', req.decodedToken.id, req.decodedToken.username);
+        
+        try {
+            console.log('Step 1: Getting AI settings from database...');
+            // Get AI settings from database (internal method with actual API key)
+            const aiSettings = await Settings.getOpenAIApiKey();
+            console.log('AI Settings retrieved:', {
+                enabled: aiSettings.enabled,
+                model: aiSettings.model,
+                hasApiKey: !!(aiSettings.apiKey && aiSettings.apiKey.trim() !== ''),
+                apiKeyLength: aiSettings.apiKey ? aiSettings.apiKey.length : 0
+            });
+            
+            // Check if AI is enabled
+            if (!aiSettings.enabled) {
+                console.log('ERROR: AI features are not enabled');
+                Response.BadParameters(res, 'AI features are not enabled');
+                return;
+            }
+
+            // Check if OpenAI API key is configured
+            if (!aiSettings.apiKey || aiSettings.apiKey.trim() === '') {
+                console.log('ERROR: OpenAI API key is not configured');
+                Response.BadParameters(res, 'OpenAI API key is not configured');
+                return;
+            }
+
+            console.log('Step 2: Getting finding data...');
+            // Get the finding data
+            const finding = await Audit.getFinding(acl.isAllowed(req.decodedToken.role, 'audits:read-all'), req.params.auditId, req.decodedToken.id, req.params.findingId);
+            console.log('Finding retrieved:', {
+                found: !!finding,
+                title: finding ? finding.title : 'N/A',
+                hasDescription: !!(finding && finding.description),
+                hasObservation: !!(finding && finding.observation),
+                hasPoc: !!(finding && finding.poc)
+            });
+            
+            if (!finding) {
+                console.log('ERROR: Finding not found');
+                Response.BadParameters(res, 'Finding not found');
+                return;
+            }
+
+            // Get the model to use
+            const model = aiSettings.model;
+            console.log('Using AI model:', model);
+
+            console.log('Step 3: Initializing OpenAI client...');
+            // Initialize OpenAI client
+            const openai = new OpenAI({
+                apiKey: aiSettings.apiKey,
+            });
+            console.log('OpenAI client initialized successfully');
+
+            // Helper function to strip HTML tags for analysis
+            const stripHtml = (html) => {
+                if (!html) return '';
+                return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            };
+
+            console.log('Step 4: Preparing content for analysis...');
+            // Prepare content for analysis
+            const title = finding.title || '';
+            const description = stripHtml(finding.description) || '';
+            const observation = stripHtml(finding.observation) || '';
+            const proof = stripHtml(finding.poc) || '';
+
+            console.log('Content prepared:', {
+                titleLength: title.length,
+                descriptionLength: description.length,
+                observationLength: observation.length,
+                proofLength: proof.length
+            });
+
+            // Construct the prompt
+            const prompt = `You are a professional editor specializing in cybersecurity and penetration testing reports. Please review the following vulnerability finding content for spelling, grammar, and clarity issues. Provide specific, actionable suggestions for improvement while maintaining the technical accuracy and professional tone appropriate for penetration testing reports.
+
+**TITLE:** ${title}
+
+**DESCRIPTION:** ${description}
+
+**OBSERVATION:** ${observation}
+
+**PROOF OF CONCEPT:** ${proof}
+
+Please analyze each section and provide feedback in the following JSON format:
+{
+  "title": {
+    "issues": ["list of specific issues found"],
+    "suggestions": ["list of specific improvement suggestions"],
+    "corrected": "corrected version if needed, or null if no corrections needed"
+  },
+  "description": {
+    "issues": ["list of specific issues found"],
+    "suggestions": ["list of specific improvement suggestions"],
+    "corrected": "corrected version if needed, or null if no corrections needed"
+  },
+  "observation": {
+    "issues": ["list of specific issues found"],
+    "suggestions": ["list of specific improvement suggestions"],
+    "corrected": "corrected version if needed, or null if no corrections needed"
+  },
+  "proof": {
+    "issues": ["list of specific issues found"],
+    "suggestions": ["list of specific improvement suggestions"],
+    "corrected": "corrected version if needed, or null if no corrections needed"
+  },
+  "overall": {
+    "summary": "brief overall assessment",
+    "recommendations": ["general recommendations for improvement"]
+  }
+}
+
+Focus on:
+- Spelling errors
+- Grammar mistakes
+- Sentence structure and clarity
+- Professional tone consistency
+- Technical accuracy in language
+- Readability improvements
+
+If a section has no content or no issues, set "issues" and "suggestions" to empty arrays and "corrected" to null.
+Return only the JSON object, no additional text.`;
+
+            console.log('Step 5: Calling OpenAI API...');
+            console.log('Prompt length:', prompt.length);
+            
+            // Call OpenAI API
+            const completion = await openai.chat.completions.create({
+                model: model,
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a professional editor specializing in cybersecurity and penetration testing reports. You provide detailed feedback on spelling, grammar, and clarity while maintaining technical accuracy."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                max_tokens: 2000,
+                temperature: 0.3,
+            });
+
+            console.log('OpenAI API call successful');
+            console.log('Response received:', {
+                choices: completion.choices.length,
+                finishReason: completion.choices[0].finish_reason,
+                usage: completion.usage
+            });
+
+            // Parse the response
+            const aiResponse = completion.choices[0].message.content.trim();
+            console.log('Step 6: Processing AI response...');
+            console.log('Raw AI response length:', aiResponse.length);
+            console.log('Raw AI response (first 500 chars):', aiResponse.substring(0, 500));
+            
+            // Try to parse JSON response
+            let analysisResult;
+            try {
+                console.log('Attempting to parse JSON...');
+                analysisResult = JSON.parse(aiResponse);
+                console.log('JSON parsing successful');
+            } catch (parseError) {
+                console.log('JSON parsing failed, trying to extract JSON from response...');
+                console.log('Parse error:', parseError.message);
+                // If JSON parsing fails, try to extract JSON from the response
+                const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    console.log('Found JSON match, attempting to parse...');
+                    analysisResult = JSON.parse(jsonMatch[0]);
+                    console.log('JSON extraction and parsing successful');
+                } else {
+                    console.log('No JSON found in response');
+                    throw new Error('Invalid JSON response from AI');
+                }
+            }
+
+            console.log('Step 7: Validating response structure...');
+            console.log('Analysis result keys:', Object.keys(analysisResult));
+            
+            // Validate the response structure
+            if (!analysisResult.title || !analysisResult.description || 
+                !analysisResult.observation || !analysisResult.proof || !analysisResult.overall) {
+                console.log('ERROR: AI response missing required fields');
+                console.log('Missing fields check:', {
+                    hasTitle: !!analysisResult.title,
+                    hasDescription: !!analysisResult.description,
+                    hasObservation: !!analysisResult.observation,
+                    hasProof: !!analysisResult.proof,
+                    hasOverall: !!analysisResult.overall
+                });
+                throw new Error('AI response missing required fields');
+            }
+
+            console.log('Step 8: Sending successful response...');
+            // Return the analysis result
+            Response.Ok(res, {
+                findingId: req.params.findingId,
+                analysis: analysisResult,
+                timestamp: new Date().toISOString()
+            });
+            
+            console.log('=== AI CHECK DEBUG SUCCESS ===');
+
+        } catch (error) {
+            console.log('=== AI CHECK DEBUG ERROR ===');
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                type: error.type,
+                stack: error.stack
+            });
+            
+            // Handle specific error types
+            if (error.code === 'insufficient_quota') {
+                console.log('Error type: Insufficient quota');
+                Response.BadParameters(res, 'OpenAI API quota exceeded. Please try again later.');
+            } else if (error.code === 'rate_limit_exceeded') {
+                console.log('Error type: Rate limit exceeded');
+                Response.BadParameters(res, 'OpenAI API rate limit exceeded. Please try again later.');
+            } else if (error.message && error.message.includes('API key')) {
+                console.log('Error type: API key issue');
+                Response.BadParameters(res, 'Invalid OpenAI API key configuration.');
+            } else if (error.message && error.message.includes('JSON')) {
+                console.log('Error type: JSON parsing issue');
+                Response.BadParameters(res, 'Failed to parse AI response. Please try again.');
+            } else {
+                console.log('Error type: General/Unknown');
+                Response.BadParameters(res, 'OpenAI API is currently unavailable. Please try again later.');
+            }
+            console.log('=== AI CHECK DEBUG END ===');
+        }
     });
 
     // Get section of audit

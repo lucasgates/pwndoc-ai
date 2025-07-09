@@ -21,6 +21,15 @@ export default {
                 '#ff0000', '#000177', '#00807a', '#008021', '#8e0075',
                 '#8f0000', '#817d0c', '#807d78', '#c4c1bb', '#000000'
             ],
+            aiModelOptions: [
+                { label: 'GPT-3.5 Turbo (Recommended)', value: 'gpt-3.5-turbo' },
+                { label: 'GPT-4', value: 'gpt-4' },
+                { label: 'GPT-4 Turbo', value: 'gpt-4-turbo' },
+                { label: 'GPT-4o', value: 'gpt-4o' },
+                { label: 'GPT-4o Mini', value: 'gpt-4o-mini' }
+            ],
+            newApiKey: '',
+            updatingApiKey: false,
 
             // Backups
             loadingBackups: true,
@@ -133,6 +142,20 @@ export default {
             SettingsService.getSettings()
             .then((data) => {
                 this.settings = data.data.datas;
+                
+                // Initialize AI settings if they don't exist
+                if (!this.settings.ai) {
+                    this.settings.ai = {
+                        enabled: false,
+                        public: {
+                            model: 'gpt-3.5-turbo'
+                        },
+                        private: {
+                            openaiApiKey: ''
+                        }
+                    };
+                }
+                
                 this.settingsOrig = this.$_.cloneDeep(this.settings);
                 this.loading = false
             })
@@ -493,6 +516,51 @@ export default {
                 color: 'negative',
                 textColor: 'white',
                 position: 'top-right'
+            })
+        },
+
+        updateApiKey: function() {
+            if (!this.newApiKey || this.newApiKey.trim() === '') {
+                Notify.create({
+                    message: 'Please enter an API key',
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right'
+                })
+                return;
+            }
+
+            this.updatingApiKey = true;
+
+            this.$axios.put('/api/settings/ai/api-key', {
+                apiKey: this.newApiKey.trim()
+            })
+            .then((response) => {
+                // Update the local status
+                if (this.settings.ai && this.settings.ai.private) {
+                    this.settings.ai.private.apiKeyConfigured = response.data.datas.apiKeyConfigured;
+                }
+                
+                // Clear the input field
+                this.newApiKey = '';
+                
+                Notify.create({
+                    message: response.data.datas.message || 'API key updated successfully',
+                    color: 'positive',
+                    textColor: 'white',
+                    position: 'top-right'
+                })
+            })
+            .catch((err) => {
+                Notify.create({
+                    message: err.response?.data?.datas || 'Failed to update API key',
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right'
+                })
+            })
+            .finally(() => {
+                this.updatingApiKey = false;
             })
         }
         

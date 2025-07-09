@@ -59,17 +59,38 @@ const SettingSchema = new Schema({
         private: {
             removeApprovalsUponUpdate: { type: Boolean, default: false }
         }
+    },
+    ai: {
+        enabled: { type: Boolean, default: false },
+        public: {
+            model: { type: String, default: 'gpt-3.5-turbo' }
+        },
+        private: {
+            openaiApiKey: { type: String, default: '' }
+        }
     }
 }, {strict: true});
 
-// Get all settings
+// Get all settings (excluding sensitive data like API keys)
 SettingSchema.statics.getAll = () => {
     return new Promise((resolve, reject) => {
         const query = Settings.findOne({});
         query.select('-_id -__v');
         query.exec()
             .then(settings => {
-                resolve(settings)
+                if (settings) {
+                    // Remove sensitive data and add status indicators
+                    const sanitizedSettings = settings.toObject();
+                    if (sanitizedSettings.ai && sanitizedSettings.ai.private) {
+                        // Replace API key with status indicator
+                        const hasApiKey = !!(sanitizedSettings.ai.private.openaiApiKey && sanitizedSettings.ai.private.openaiApiKey.trim() !== '');
+                        delete sanitizedSettings.ai.private.openaiApiKey;
+                        sanitizedSettings.ai.private.apiKeyConfigured = hasApiKey;
+                    }
+                    resolve(sanitizedSettings);
+                } else {
+                    resolve(settings);
+                }
             })
             .catch(err => reject(err));
     });
@@ -79,7 +100,7 @@ SettingSchema.statics.getAll = () => {
 SettingSchema.statics.getPublic = () => {
     return new Promise((resolve, reject) => {
         const query = Settings.findOne({});
-        query.select('-_id report.enabled report.public reviews.enabled reviews.public');
+        query.select('-_id report.enabled report.public reviews.enabled reviews.public ai.enabled ai.public');
         query.exec()
             .then(settings => resolve(settings))
             .catch(err => reject(err));
@@ -92,6 +113,53 @@ SettingSchema.statics.update = (settings) => {
         const query = Settings.findOneAndUpdate({}, settings, { new: true, runValidators: true });
         query.exec()
             .then(settings => resolve(settings))
+            .catch(err => reject(err));
+    });
+};
+
+// Update OpenAI API Key specifically (secure method)
+SettingSchema.statics.updateOpenAIApiKey = (apiKey) => {
+    return new Promise((resolve, reject) => {
+        const query = Settings.findOneAndUpdate(
+            {}, 
+            { 'ai.private.openaiApiKey': apiKey }, 
+            { new: true, runValidators: true, upsert: true }
+        );
+        query.exec()
+            .then(settings => {
+                // Return only success status, not the actual key
+                const hasApiKey = !!(apiKey && apiKey.trim() !== '');
+                resolve({ 
+                    success: true, 
+                    apiKeyConfigured: hasApiKey,
+                    message: hasApiKey ? 'OpenAI API key updated successfully' : 'OpenAI API key removed successfully'
+                });
+            })
+            .catch(err => reject(err));
+    });
+};
+
+// Get OpenAI API key for internal use (not exposed to frontend)
+SettingSchema.statics.getOpenAIApiKey = () => {
+    return new Promise((resolve, reject) => {
+        const query = Settings.findOne({});
+        query.select('ai.enabled ai.public.model ai.private.openaiApiKey');
+        query.exec()
+            .then(settings => {
+                if (settings && settings.ai) {
+                    resolve({
+                        enabled: settings.ai.enabled,
+                        model: settings.ai.public ? settings.ai.public.model : 'gpt-3.5-turbo',
+                        apiKey: settings.ai.private ? settings.ai.private.openaiApiKey : ''
+                    });
+                } else {
+                    resolve({
+                        enabled: false,
+                        model: 'gpt-3.5-turbo',
+                        apiKey: ''
+                    });
+                }
+            })
             .catch(err => reject(err));
     });
 };

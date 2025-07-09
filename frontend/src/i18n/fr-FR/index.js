@@ -24,6 +24,7 @@ export default {
             navigateRetest: 'Accéder au Retest'
         },
         backupFinding: "Proposer la création  / Mettre à jour dans la base de données",
+        aiCheck: 'Vérification IA',
         delete: 'Supprimer',
         save: 'Sauvegarder',
         update: 'Modifier',

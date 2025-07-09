@@ -32,4 +32,15 @@ module.exports = function(app) {
         .then(settings => Response.SendFile(res, "app-settings.json", settings))
         .catch(err => Response.Internal(res, err))
     });
+
+    app.put("/api/settings/ai/api-key", acl.hasPermission('settings:update'), function(req, res) {
+        if (!req.body.hasOwnProperty('apiKey')) {
+            Response.BadParameters(res, 'Required parameter: apiKey');
+            return;
+        }
+
+        Settings.updateOpenAIApiKey(req.body.apiKey)
+        .then(result => Response.Ok(res, result))
+        .catch(err => Response.Internal(res, err));
+    });
 }

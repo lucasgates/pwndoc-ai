@@ -18,6 +18,7 @@ export default {
             removeApproval: 'Freigabe entfernen',
         },
         backupFinding: "Neue Schwachstelle / Änderung in Datenbank vorschlagen",
+        aiCheck: 'KI-Prüfung',
         delete: 'Löschen',
         save: 'Speichern',
         update: 'Aktualisieren',

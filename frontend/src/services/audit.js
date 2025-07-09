@@ -119,4 +119,8 @@ export default {
   updateComment: function(auditId, comment) {
     return Vue.prototype.$axios.put(`audits/${auditId}/comments/${comment._id}`, comment)
   },
+
+  aiCheckFinding: function(auditId, findingId) {
+    return Vue.prototype.$axios.post(`audits/${auditId}/findings/${findingId}/ai-check`)
+  },
 }

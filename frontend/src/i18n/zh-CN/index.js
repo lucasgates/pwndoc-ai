@@ -18,6 +18,7 @@ export default {
             removeApproval: '移除批准',
         },
         backupFinding: "提议在漏洞库中创建/更新",
+        aiCheck: 'AI检查',
         delete: '删除',
         save: '保存',
         update: '更新',

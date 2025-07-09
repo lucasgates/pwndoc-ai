@@ -23,6 +23,7 @@ export default {
           navigateRetest: 'Acessar Reteste'
       },
       backupFinding: 'Propor Criação / Atualização no Banco de Dados de Vulnerabilidades',
+      aiCheck: 'Verificação IA',
       delete: 'Excluir',
       save: 'Salvar',
       update: 'Atualizar',

@@ -24,6 +24,7 @@ export default {
             navigateRetest: 'Access Retest'
         },
         backupFinding: "Propose Creation / Update in Vulnerability Database",
+        aiCheck: 'AI Check',
         delete: 'Delete',
         save: 'Save',
         update: 'Update',

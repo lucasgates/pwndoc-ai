@@ -1345,6 +1345,11 @@ export default {
     watch: {
         value: function(val) {
             this.cvss4StrToObject(val);
+            try {
+                this.cvss4 = new Cvss4P0(val).createJsonSchema();
+            } catch {
+                this.cvss4 = {}
+            }
         },
         cvss4Obj: {
             handler(newValue, oldValue) {
@@ -1500,7 +1505,7 @@ export default {
             if (this.cvss4Obj.E) vectorString += "/E:"+this.cvss4Obj.E
 
             try {
-                this.cvss4 = new Cvss4P0(this.value).createJsonSchema();
+                this.cvss4 = new Cvss4P0(vectorString).createJsonSchema();
             } catch {
                 this.cvss4 = {}
             }

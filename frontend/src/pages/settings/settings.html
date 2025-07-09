@@ -344,6 +344,103 @@
             </div>
         </q-card>
 
+        <q-card v-if="UserService.isAllowed('settings:read')" class="q-my-md">
+            <q-card-section class="q-py-none bg-blue-grey-5 text-white">
+                <q-item style="padding:0px;">
+                    <q-item-section class="col-11">
+                        <div class="text-h6">AI Settings</div>
+                    </q-item-section>
+                    <q-item-section class="col-md-1 items-center" >
+                        <q-toggle
+                            color="primary"
+                            keep-color
+                            :disable="!canEdit"
+                            v-model="settings.ai.enabled"
+                        />
+                    </q-item-section>
+                </q-item>
+            </q-card-section>
+            <div v-if="UserService.isAllowed('settings:update')">
+                <q-card-section>
+                    <div class="text-bold">OpenAI API Configuration</div>
+                    <br/>
+                    <div class="text-grey-8">Configure OpenAI API key and model for AI-powered vulnerability generation</div>
+                    <br/>
+                    <q-item>
+                        <q-item-section class="col-md-4">
+                            <q-select
+                                :label="'OpenAI Model'"
+                                stack-label
+                                outlined
+                                :disable="!settings.ai.enabled"
+                                v-model="settings.ai.public.model"
+                                :options="aiModelOptions"
+                                emit-value
+                                map-options
+                                hint="Select the OpenAI model to use for generation"
+                            />
+                        </q-item-section>
+                    </q-item>
+                </q-card-section>
+                <q-separator />
+                <q-card-section>
+                    <div class="text-bold">API Key Management</div>
+                    <br/>
+                    <div class="text-grey-8">Securely manage your OpenAI API key</div>
+                    <br/>
+                    <q-item>
+                        <q-item-section class="col-md-6">
+                            <q-input
+                                :label="'New OpenAI API Key'"
+                                type="password"
+                                stack-label
+                                outlined
+                                :disable="!settings.ai.enabled"
+                                v-model="newApiKey"
+                                :hint="settings.ai.private && settings.ai.private.apiKeyConfigured ? 'API key is currently configured' : 'No API key configured'"
+                                placeholder="Enter new API key to update"
+                                clearable
+                            />
+                        </q-item-section>
+                        <q-item-section class="col-md-2">
+                            <q-btn
+                                :label="'Update Key'"
+                                color="primary"
+                                :disable="!settings.ai.enabled || !newApiKey || newApiKey.trim() === ''"
+                                @click="updateApiKey"
+                                :loading="updatingApiKey"
+                            />
+                        </q-item-section>
+                    </q-item>
+                </q-card-section>
+                <q-separator />
+                <q-card-section>
+                    <div class="text-bold">AI Features Status</div>
+                    <br/>
+                    <q-item>
+                        <q-item-section class="col-md-3">
+                            <q-chip 
+                                :color="settings.ai.enabled ? 'positive' : 'negative'" 
+                                text-color="white" 
+                                :icon="settings.ai.enabled ? 'check_circle' : 'cancel'"
+                            >
+                                {{ settings.ai.enabled ? 'AI Enabled' : 'AI Disabled' }}
+                            </q-chip>
+                        </q-item-section>
+                        <q-item-section class="col-md-3">
+                            <q-chip 
+                                :color="(settings.ai.private && settings.ai.private.apiKeyConfigured) ? 'positive' : 'warning'" 
+                                text-color="white" 
+                                :icon="(settings.ai.private && settings.ai.private.apiKeyConfigured) ? 'vpn_key' : 'warning'"
+                            >
+                                {{ (settings.ai.private && settings.ai.private.apiKeyConfigured) ? 'API Key Set' : 'API Key Missing' }}
+                            </q-chip>
+                        </q-item-section>
+                    </q-item>
+                </q-card-section>
+            </div>
+        </q-card>
+
         <q-card v-if="UserService.isAllowed('settings:read')" class="q-my-lg">
             <q-card-section class="q-py-none bg-blue-grey-5 text-white">
                 <q-item style="padding:0px;">
@@ -842,4 +939,4 @@
             </q-card-section>
         </q-card>
     </div>
-</div>        
+</div>
