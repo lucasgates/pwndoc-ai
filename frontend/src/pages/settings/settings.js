@@ -175,7 +175,15 @@ export default {
             if(this.settings.reviews.public.minReviewers < min || this.settings.reviews.public.minReviewers > max) {
                 this.settings.reviews.public.minReviewers = this.settings.reviews.public.minReviewers < min ? min: max;
             }
-            SettingsService.updateSettings(this.settings)
+            
+            // Create a copy of settings and exclude the OpenAI API key
+            // The API key has its own dedicated update mechanism
+            var settingsToSave = this.$_.cloneDeep(this.settings);
+            if (settingsToSave.ai && settingsToSave.ai.private) {
+                delete settingsToSave.ai.private.openaiApiKey;
+            }
+            
+            SettingsService.updateSettings(settingsToSave)
             .then((data) => {
                 this.settingsOrig = this.$_.cloneDeep(this.settings);
                 this.$settings.refresh();
@@ -532,7 +540,7 @@ export default {
 
             this.updatingApiKey = true;
 
-            this.$axios.put('/api/settings/ai/api-key', {
+            this.$axios.put('/settings/ai/api-key', {
                 apiKey: this.newApiKey.trim()
             })
             .then((response) => {

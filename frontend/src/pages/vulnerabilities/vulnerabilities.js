@@ -540,6 +540,46 @@ export default {
                 return;
             }
 
+            // Check AI settings first
+            console.log('[DEBUG] Checking AI settings...');
+            this.$axios.get('/settings')
+            .then((settingsResponse) => {
+                console.log('[DEBUG] Current settings:', settingsResponse.data);
+                console.log('[DEBUG] Full settings datas:', JSON.stringify(settingsResponse.data.datas, null, 2));
+                if (settingsResponse.data && settingsResponse.data.datas && settingsResponse.data.datas.ai) {
+                    console.log('[DEBUG] AI settings:', settingsResponse.data.datas.ai);
+                    if (!settingsResponse.data.datas.ai.enabled) {
+                        Notify.create({
+                            message: 'AI features are not enabled. Please enable AI in settings first.',
+                            color: 'negative',
+                            textColor: 'white',
+                            position: 'top-right'
+                        });
+                        return;
+                    }
+                    if (!settingsResponse.data.datas.ai.private || !settingsResponse.data.datas.ai.private.apiKeyConfigured) {
+                        Notify.create({
+                            message: 'OpenAI API key is not configured. Please set your API key in settings first.',
+                            color: 'negative',
+                            textColor: 'white',
+                            position: 'top-right'
+                        });
+                        return;
+                    }
+                }
+                
+                // Proceed with AI generation if settings are OK
+                this.performAIGeneration();
+            })
+            .catch((err) => {
+                console.log('[DEBUG] Error getting settings:', err);
+                // Proceed anyway, let the backend handle the validation
+                this.performAIGeneration();
+            });
+        },
+
+        performAIGeneration: function() {
+
             // Show loading state
             this.$q.loading.show({
                 message: 'Generating vulnerability content with AI...'
@@ -557,8 +597,11 @@ export default {
             var userDescription = this.aiDescription.trim();
 
             // Call the AI generation API
+            console.log('[DEBUG] Sending AI generation request:', requestData);
+            console.log('[DEBUG] Request URL: vulnerabilities/ai-generate');
             this.$axios.post('vulnerabilities/ai-generate', requestData)
             .then((response) => {
+                console.log('[DEBUG] AI generation response:', response);
                 this.$q.loading.hide();
                 
                 if (response.data && response.data.datas) {

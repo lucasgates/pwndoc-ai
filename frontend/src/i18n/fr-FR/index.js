@@ -355,6 +355,7 @@ export default {
     mergeVulnerabilitiesInfo: `L'objectif est de fusionner différentes vulnérabilités dans différentes langues en une seule vulnérabilité.<br />
     Il doit donc exister un minimum de 2 langues.`,
     newVulnerability: 'Nouvelle vulnérabilité',
+    createVulnerabilityIA: 'Créer avec IA',
     total: 'Total',
     addVulnerability: 'Ajouter une Vulnérabilité',
     editVulnerability: 'Modifier une Vulnérabilité',

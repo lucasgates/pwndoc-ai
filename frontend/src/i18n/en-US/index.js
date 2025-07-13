@@ -568,6 +568,7 @@ export default {
     mergeVulnerabilitiesInfo: `The goal is to merge different vulnerabilities with different languages into the same vulnerabiliy.<br />
     So a minimum of 2 Languages must exist.`,
     newVulnerability: 'New Vulnerability',
+    createVulnerabilityIA: 'Create with AI',
     total: 'Total',
     addVulnerability: 'Add Vulnerability',
     editVulnerability: 'Edit Vulnerability',

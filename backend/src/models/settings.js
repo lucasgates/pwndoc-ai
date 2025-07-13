@@ -109,11 +109,32 @@ SettingSchema.statics.getPublic = () => {
 
 // Update Settings
 SettingSchema.statics.update = (settings) => {
-    return new Promise((resolve, reject) => {
-        const query = Settings.findOneAndUpdate({}, settings, { new: true, runValidators: true });
-        query.exec()
-            .then(settings => resolve(settings))
-            .catch(err => reject(err));
+    return new Promise(async (resolve, reject) => {
+        try {
+            // First, get the current settings to preserve sensitive data
+            const currentSettings = await Settings.findOne({});
+            
+            // Preserve the existing API key if it exists and is not being updated
+            if (currentSettings && 
+                currentSettings.ai && 
+                currentSettings.ai.private && 
+                currentSettings.ai.private.openaiApiKey &&
+                (!settings.ai || !settings.ai.private || !settings.ai.private.hasOwnProperty('openaiApiKey'))) {
+                
+                // Ensure the AI structure exists in the update
+                if (!settings.ai) settings.ai = {};
+                if (!settings.ai.private) settings.ai.private = {};
+                
+                // Preserve the existing API key
+                settings.ai.private.openaiApiKey = currentSettings.ai.private.openaiApiKey;
+            }
+            
+            const query = Settings.findOneAndUpdate({}, settings, { new: true, runValidators: true });
+            const updatedSettings = await query.exec();
+            resolve(updatedSettings);
+        } catch (err) {
+            reject(err);
+        }
     });
 };
 
