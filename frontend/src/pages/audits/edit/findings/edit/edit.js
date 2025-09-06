@@ -35,6 +35,8 @@ export default {
             transitionEnd: true,
             // AI Check
             aiCheckLoading: false,
+            aiAnalysis: null,
+            aiCorrectedText: {},
             // Comments
             commentTemp: null,
             replyTemp: null,

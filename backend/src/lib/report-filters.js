@@ -348,7 +348,8 @@ defaultFilters.count = function(input, severity, scoreType) {
             break;
         case "environmental":
         default:  // Set default to environmental score
-            scoreAttribute = "environmentalSeverity";            
+            //scoreAttribute = "environmentalSeverity";            
+            scoreAttribute = "baseSeverity";            
     }
     for(var i = 0; i < input.length; i++){
 
