@@ -452,7 +452,7 @@ export default {
     collaborators: 'Collaborators',
     startDate: 'Start Date',
     endDate: 'End Date',
-    reportingDate: 'Reporting Date',
+    reportingDate: 'Kickoff Date',
     auditScope: 'Scope (One per line)',
     import: 'Import',
     export: 'Export',
