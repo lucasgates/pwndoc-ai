@@ -28,7 +28,7 @@ services:
     image: yeln4ts/pwndoc:backend-dev
     container_name: pwndoc-backend-dev
     environment:
-      - DB_SERVER=mongo-pwndoc-dev
+      - DB_SERVER=mongo-pwndoc
       - DB_NAME=pwndoc
     volumes:
       - ./src:/app/src
@@ -40,8 +40,9 @@ services:
     restart: always
     links:
       - mongodb
-    networks: 
+    networks:
       - backend
+      - pwndoc-network
 
 volumes:
   mongo-data-dev:
@@ -49,3 +50,6 @@ volumes:
 networks:
   backend:
     driver: bridge
+  pwndoc-network:
+    name: pwndoc-ai_backend
+    external: true

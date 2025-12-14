@@ -37,25 +37,13 @@
                 outlined
                 />
                 <q-space />
-                <q-input v-model="findingTitle" :label="$t('title')" class="q-pl-md col-md-6" @keyup.enter="addFinding()" outlined>
-                    <template v-slot:append>
-                        <q-btn-dropdown :label="$t('btn.create')" no-caps flat>
-                            <q-list separator>
-                                <q-item-label header>{{$t('selectCategory')}}</q-item-label>
-                                <q-item clickable v-close-popup @click="addFinding()">
-                                    <q-item-section>
-                                      <q-item-label>{{$t('noCategory')}}</q-item-label>
-                                    </q-item-section>
-                                </q-item>
-                                <q-item v-for="category of vulnCategories" :key="category.name" clickable v-close-popup @click="addFinding(category)">
-                                    <q-item-section>
-                                      <q-item-label>{{category.name}}</q-item-label>
-                                    </q-item-section>
-                                </q-item>
-                            </q-list>
-                        </q-btn-dropdown>
-                    </template>
-                </q-input>
+                <q-btn
+                unelevated
+                color="light-blue"
+                no-caps
+                :label="$t('createVulnerabilityIA')"
+                @click="showAiModal()"
+                />
             </template>
 
             <template v-slot:top-row="props">
@@ -142,4 +130,158 @@
         </q-table>
     </div>
 </div>
+
+<!-- AI Input Modal -->
+<q-dialog ref="aiModal" persistent @hide="closeAiModal()">
+    <q-card style="width: 600px; max-width: 600px;">
+        <q-bar class="bg-fixed-primary text-white">
+            <div class="q-toolbar-title">
+                {{$t('createVulnerabilityIA')}}
+            </div>
+            <q-space />
+            <q-btn dense flat icon="close" @click="$refs.aiModal.hide()" />
+        </q-bar>
+
+        <q-card-section>
+            <q-input
+            :label="$t('title')"
+            v-model="aiTitle"
+            outlined
+            autofocus
+            class="q-mb-md"
+            :placeholder="$t('vulnerabilityTitle')"
+            />
+            <q-select
+            :label="$t('language')"
+            v-model="aiLanguage"
+            :options="aiLanguageOptions"
+            option-value="value"
+            option-label="label"
+            map-options
+            emit-value
+            outlined
+            class="q-mb-md"
+            />
+            <q-input
+            :label="$t('description')"
+            v-model="aiDescription"
+            type="textarea"
+            rows="6"
+            outlined
+            :placeholder="$t('describeVulnerability')"
+            />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-actions align="right">
+            <q-btn color="primary" outline @click="$refs.aiModal.hide()">{{$t('btn.cancel')}}</q-btn>
+            <q-btn color="secondary" unelevated @click="createWithAI()" :loading="aiLoading" :disable="!aiTitle.trim() && !aiDescription.trim()">{{$t('btn.create')}}</q-btn>
+        </q-card-actions>
+    </q-card>
+</q-dialog>
+
+<!-- Create/Review Modal -->
+<q-dialog ref="createModal" maximized position="right" persistent @hide="closeCreateModal()">
+    <q-card :style="($q.screen.gt.lg)?'width: 50vw':'width:1000px'">
+        <q-bar class="bg-fixed-primary text-white">
+            <div class="q-toolbar-title">
+                {{$t('createFinding')}}
+            </div>
+            <q-space />
+            <q-btn dense flat icon="close" @click="$refs.createModal.hide()" />
+        </q-bar>
+
+        <q-card-section>
+            <div class="q-col-gutter-md row">
+                <q-input
+                :label="$t('title')+' *'"
+                stack-label
+                class="col-md-8"
+                autofocus
+                v-model="aiFinding.title"
+                outlined
+                />
+                <q-select
+                class="col-md-4"
+                :label="$t('category')"
+                v-model="aiFinding.category"
+                :options="vulnCategories"
+                option-value="name"
+                option-label="name"
+                clearable
+                options-sanitize
+                outlined
+                />
+            </div>
+        </q-card-section>
+        <q-card-section>
+            <q-field borderless :label="$t('description')" stack-label>
+                <template v-slot="control">
+                    <basic-editor noAffix v-model="aiFinding.description" />
+                </template>
+            </q-field>
+        </q-card-section>
+        <q-card-section>
+            <q-field borderless :label="$t('observation')" stack-label>
+                <template v-slot="control">
+                    <basic-editor noAffix v-model="aiFinding.observation" />
+                </template>
+            </q-field>
+        </q-card-section>
+        <q-card-section v-if="$settings.report.public.scoringMethods.CVSS3">
+            <div class="col-md-12">
+                <cvss3-calculator v-model="aiFinding.cvssv3" />
+            </div>
+        </q-card-section>
+        <q-card-section v-if="$settings.report.public.scoringMethods.CVSS4">
+            <div class="col-md-12">
+                <cvss4-calculator v-model="aiFinding.cvssv4" />
+            </div>
+        </q-card-section>
+        <q-card-section>
+            <q-field borderless :label="$t('remediation')" stack-label>
+                <template v-slot="control">
+                    <basic-editor noAffix v-model="aiFinding.remediation" />
+                </template>
+            </q-field>
+        </q-card-section>
+        <q-card-section>
+            <div class="q-col-gutter-md row">
+                <q-select
+                :label="$t('remediationComplexity')"
+                stack-label
+                class="col-md-6"
+                v-model="aiFinding.remediationComplexity"
+                :options="[{label: $t('easy'), value: 1},{label: $t('medium'), value: 2},{label: $t('complex'), value: 3}]"
+                map-options
+                emit-value
+                options-sanitize
+                outlined
+                />
+                <q-select
+                :label="$t('remediationPriority')"
+                stack-label
+                class="col-md-6"
+                v-model="aiFinding.priority"
+                :options="[{label: $t('low'), value: 1},{label: $t('medium'), value: 2},{label: $t('high'), value: 3},{label: $t('urgent'), value: 4}]"
+                map-options
+                emit-value
+                options-sanitize
+                outlined
+                />
+            </div>
+        </q-card-section>
+        <q-card-section>
+            <textarea-array :label="$t('references')" v-model="aiFinding.references" />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-actions align="right">
+            <q-btn color="primary" outline @click="$refs.createModal.hide()">{{$t('btn.cancel')}}</q-btn>
+            <q-btn color="secondary" unelevated @click="createFindingFromAI()">{{$t('btn.create')}}</q-btn>
+        </q-card-actions>
+    </q-card>
+</q-dialog>
 </div>

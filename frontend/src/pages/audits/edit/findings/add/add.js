@@ -1,6 +1,10 @@
 import { Notify } from 'quasar';
 
 import Breadcrumb from 'components/breadcrumb';
+import BasicEditor from 'components/editor/Editor.vue';
+import Cvss3Calculator from 'components/cvss3calculator';
+import Cvss4Calculator from 'components/cvss4calculator';
+import TextareaArray from 'components/textarea-array';
 
 import VulnService from '@/services/vulnerability';
 import AuditService from '@/services/audit';
@@ -19,6 +23,25 @@ export default {
         return {
             finding: {},
             findingTitle: '',
+            // AI Create
+            aiTitle: '',
+            aiDescription: '',
+            aiLanguage: '',
+            aiLoading: false,
+            // AI-generated finding for review
+            aiFinding: {
+                title: '',
+                vulnType: '',
+                description: '',
+                observation: '',
+                remediation: '',
+                remediationComplexity: '',
+                priority: '',
+                references: [],
+                cvssv3: '',
+                cvssv4: '',
+                category: null
+            },
             // List of vulnerabilities from knowledge base
             vulnerabilities: [],
             // Loading state
@@ -60,7 +83,11 @@ export default {
     },
 
     components: {
-        Breadcrumb
+        Breadcrumb,
+        BasicEditor,
+        Cvss3Calculator,
+        Cvss4Calculator,
+        TextareaArray
     },
 
     mounted: function() {
@@ -83,6 +110,13 @@ export default {
         vulnTypeOptions: function() {
             return this.$_.uniq(this.$_.map(this.vulnerabilities, vuln => {
                 return vuln.detail.vulnType || $t('undefined')
+            }))
+        },
+
+        aiLanguageOptions: function() {
+            return this.languages.map(lang => ({
+                label: lang.language,
+                value: lang.locale
             }))
         }
     },
@@ -243,6 +277,225 @@ export default {
                     })
                 })
             }
+        },
+
+        // AI Modal methods
+        showAiModal: function() {
+            this.aiTitle = '';
+            this.aiDescription = '';
+            this.aiLanguage = this.dtLanguage || (this.languages.length > 0 ? this.languages[0].locale : 'en');
+            this.$refs.aiModal.show();
+        },
+
+        closeAiModal: function() {
+            this.aiTitle = '';
+            this.aiDescription = '';
+        },
+
+        createWithAI: function() {
+            // Validate input
+            if (!this.aiTitle.trim() && !this.aiDescription.trim()) {
+                Notify.create({
+                    message: $t('msg.atLeastTitleOrDescription') || 'Please provide at least a title or description',
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right'
+                });
+                return;
+            }
+
+            // Check AI settings first
+            this.$axios.get('/settings')
+            .then((settingsResponse) => {
+                if (settingsResponse.data && settingsResponse.data.datas && settingsResponse.data.datas.ai) {
+                    if (!settingsResponse.data.datas.ai.enabled) {
+                        Notify.create({
+                            message: $t('msg.aiNotEnabled') || 'AI features are not enabled. Please enable AI in settings first.',
+                            color: 'negative',
+                            textColor: 'white',
+                            position: 'top-right'
+                        });
+                        return;
+                    }
+                    if (!settingsResponse.data.datas.ai.private || !settingsResponse.data.datas.ai.private.apiKeyConfigured) {
+                        Notify.create({
+                            message: $t('msg.aiApiKeyNotConfigured') || 'OpenAI API key is not configured. Please set your API key in settings first.',
+                            color: 'negative',
+                            textColor: 'white',
+                            position: 'top-right'
+                        });
+                        return;
+                    }
+                }
+
+                // Proceed with AI generation if settings are OK
+                this.performAIGeneration();
+            })
+            .catch((err) => {
+                console.log('Error getting settings:', err);
+                // Proceed anyway, let the backend handle the validation
+                this.performAIGeneration();
+            });
+        },
+
+        performAIGeneration: function() {
+            this.aiLoading = true;
+
+            // Show loading state
+            this.$q.loading.show({
+                message: $t('msg.generatingWithAI') || 'Generating finding content with AI...'
+            });
+
+            // Prepare request data
+            var requestData = {
+                title: this.aiTitle.trim(),
+                description: this.aiDescription.trim(),
+                locale: this.aiLanguage || 'en'
+            };
+
+            // Store the user input for fallback
+            var userTitle = this.aiTitle.trim();
+            var userDescription = this.aiDescription.trim();
+
+            // Call the AI generation API
+            this.$axios.post('vulnerabilities/ai-generate', requestData)
+            .then((response) => {
+                this.$q.loading.hide();
+                this.aiLoading = false;
+
+                if (response.data && response.data.datas) {
+                    var aiData = response.data.datas;
+
+                    // Populate the review finding with AI-generated content
+                    this.aiFinding = {
+                        title: aiData.title || userTitle,
+                        vulnType: '',
+                        description: aiData.description || '',
+                        observation: aiData.observation || '',
+                        remediation: aiData.remediation || '',
+                        remediationComplexity: aiData.remediationComplexity || '',
+                        priority: aiData.priority || '',
+                        references: aiData.references || [],
+                        cvssv3: aiData.cvssv3 || '',
+                        cvssv4: aiData.cvssv4 || '',
+                        category: null
+                    };
+
+                    // Close AI modal and open review modal
+                    this.$refs.aiModal.hide();
+                    this.$refs.createModal.show();
+
+                    Notify.create({
+                        message: $t('msg.aiContentGenerated') || 'AI content generated successfully! Please review and modify as needed.',
+                        color: 'positive',
+                        textColor: 'white',
+                        position: 'top-right',
+                        timeout: 5000
+                    });
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            })
+            .catch((error) => {
+                this.$q.loading.hide();
+                this.aiLoading = false;
+                console.error('AI Generation Error:', error);
+
+                // Pre-populate with user's original input for manual creation
+                this.aiFinding = {
+                    title: userTitle,
+                    vulnType: '',
+                    description: userDescription,
+                    observation: '',
+                    remediation: '',
+                    remediationComplexity: '',
+                    priority: '',
+                    references: [],
+                    cvssv3: '',
+                    cvssv4: '',
+                    category: null
+                };
+
+                // Close AI modal and open review modal for manual completion
+                this.$refs.aiModal.hide();
+                this.$refs.createModal.show();
+
+                Notify.create({
+                    message: $t('msg.aiGenerationFailed') || 'AI generation is currently unavailable. You can continue creating the finding manually.',
+                    color: 'warning',
+                    textColor: 'white',
+                    position: 'top-right',
+                    timeout: 6000
+                });
+            });
+        },
+
+        closeCreateModal: function() {
+            this.aiFinding = {
+                title: '',
+                vulnType: '',
+                description: '',
+                observation: '',
+                remediation: '',
+                remediationComplexity: '',
+                priority: '',
+                references: [],
+                cvssv3: '',
+                cvssv4: '',
+                category: null
+            };
+        },
+
+        createFindingFromAI: function() {
+            if (!this.aiFinding.title.trim()) {
+                Notify.create({
+                    message: $t('msg.titleRequired') || 'Title is required',
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right'
+                });
+                return;
+            }
+
+            var finding = {
+                title: this.aiFinding.title,
+                vulnType: this.aiFinding.vulnType || '',
+                description: this.aiFinding.description || '',
+                observation: this.aiFinding.observation || '',
+                remediation: this.aiFinding.remediation || '',
+                remediationComplexity: this.aiFinding.remediationComplexity || '',
+                priority: this.aiFinding.priority || '',
+                references: this.aiFinding.references || [],
+                cvssv3: this.aiFinding.cvssv3 || '',
+                cvssv4: this.aiFinding.cvssv4 || '',
+                category: this.aiFinding.category ? this.aiFinding.category.name : null,
+                customFields: Utils.filterCustomFields('finding', this.aiFinding.category ? this.aiFinding.category.name : '', this.$parent.customFields, [], this.$parent.audit.language)
+            };
+
+            AuditService.createFinding(this.auditId, finding)
+            .then((response) => {
+                this.$refs.createModal.hide();
+
+                Notify.create({
+                    message: $t('msg.findingCreateOk'),
+                    color: 'positive',
+                    textColor: 'white',
+                    position: 'top-right'
+                });
+
+                // Navigate to the edit page for the new finding
+                if (response.data && response.data.datas && response.data.datas._id) {
+                    this.$router.push(`/audits/${this.auditId}/findings/${response.data.datas._id}`);
+                }
+            })
+            .catch((err) => {
+                Notify.create({
+                    message: err.response ? err.response.data.datas : 'Error creating finding',
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right'
+                });
+            });
         }
     }
 }

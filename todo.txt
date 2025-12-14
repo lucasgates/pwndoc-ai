@@ -1,0 +1,10 @@
+Add alerts for when:
+	* Critical/high Vuln is added to a project (or when complete?)
+	* When submitting for Review.
+	* When Completing project.
+	* When Project is half way.
+	* When project should be complete.
+
+Concertar IA Review.
+Adicionar IA nas provas.
+Checar links antes de criar falhas.

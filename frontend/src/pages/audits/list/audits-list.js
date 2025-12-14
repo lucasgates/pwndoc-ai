@@ -36,7 +36,7 @@ export default {
                 {name: 'reviews', label: '', align: 'left', sortable: false},
                 {name: 'action', label: '', field: 'action', align: 'left', sortable: false},
             ],
-            visibleColumns: ['name', 'auditType', 'language', 'company', 'users', 'date', 'action'],
+            visibleColumns: ['name', 'auditType', 'users', 'date', 'action'],
             // Datatable pagination
             pagination: {
                 page: 1,

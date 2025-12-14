@@ -1,5 +1,5 @@
 <template>
-<div :class="$q.dark.isActive ? '' : 'login-background'" style="height:100vh;display:flex">
+ <div :class="$q.dark.isActive ? '' : 'login-background'" style="height:100vh;display:flex">
     <div v-if="loaded === true" style="margin:auto">
         <q-card align="center" style="width:350px">
             <q-card-section>

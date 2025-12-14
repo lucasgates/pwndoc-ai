@@ -123,4 +123,11 @@ export default {
   aiCheckFinding: function(auditId, findingId) {
     return Vue.prototype.$axios.post(`audits/${auditId}/findings/${findingId}/ai-check`)
   },
+
+  aiFormatProof: function(auditId, findingId, rawProof, locale) {
+    return Vue.prototype.$axios.post(
+      `audits/${auditId}/findings/${findingId}/ai-format-proof`,
+      { rawProof: rawProof, locale: locale }
+    )
+  },
 }

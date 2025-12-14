@@ -526,7 +526,7 @@ Return only the JSON object, no additional text.`;
                         content: prompt
                     }
                 ],
-                max_tokens: 2000,
+                max_tokens: 3000,
                 temperature: 0.3,
             });
 
@@ -618,6 +618,134 @@ Return only the JSON object, no additional text.`;
                 Response.BadParameters(res, 'OpenAI API is currently unavailable. Please try again later.');
             }
             console.log('=== AI CHECK DEBUG END ===');
+        }
+    });
+
+    // AI format raw proof data into structured HTML
+    app.post("/api/audits/:auditId/findings/:findingId/ai-format-proof", acl.hasPermission('audits:update'), async function(req, res) {
+        try {
+            // Validate request parameters
+            if (!req.body.rawProof || req.body.rawProof.trim() === '') {
+                Response.BadParameters(res, 'Required parameter: rawProof');
+                return;
+            }
+
+            const locale = req.body.locale || 'en';
+            if (!['en', 'pt-BR'].includes(locale)) {
+                Response.BadParameters(res, 'Invalid locale. Supported: en, pt-BR');
+                return;
+            }
+
+            // Get AI settings from database
+            const aiSettings = await Settings.getOpenAIApiKey();
+
+            // Check if AI is enabled
+            if (!aiSettings.enabled) {
+                Response.BadParameters(res, 'AI features are not enabled');
+                return;
+            }
+
+            // Check if OpenAI API key is configured
+            if (!aiSettings.apiKey || aiSettings.apiKey.trim() === '') {
+                Response.BadParameters(res, 'OpenAI API key is not configured');
+                return;
+            }
+
+            // Get the finding data for context
+            const finding = await Audit.getFinding(
+                acl.isAllowed(req.decodedToken.role, 'audits:read-all'),
+                req.params.auditId,
+                req.decodedToken.id,
+                req.params.findingId
+            );
+
+            if (!finding) {
+                Response.BadParameters(res, 'Finding not found');
+                return;
+            }
+
+            // Initialize OpenAI client
+            const openai = new OpenAI({
+                apiKey: aiSettings.apiKey,
+            });
+
+            // Build language instruction
+            let languageInstruction = '';
+            if (locale === 'pt-BR') {
+                languageInstruction = 'Write all explanatory text, headers, and descriptions in Brazilian Portuguese. Keep technical terms, code, HTTP headers, and payloads in their original form.';
+            } else {
+                languageInstruction = 'Write all explanatory text, headers, and descriptions in US English.';
+            }
+
+            // Build the prompt
+            const prompt = `Format the following raw proof-of-concept data for a vulnerability finding in a penetration testing report.
+
+Vulnerability Context:
+- Title: ${finding.title || 'Untitled Finding'}
+- Type: ${finding.vulnType || 'Not specified'}
+
+Raw Proof Data:
+${req.body.rawProof}
+
+Language: ${languageInstruction}
+
+Requirements:
+1. Use <pre><code class="language-http"> tags for HTTP requests/responses
+2. Use <pre><code class="language-plaintext"> for generic code/output, DNS interactions, or other technical output
+3. Use <p> tags for explanatory text
+4. Create clear numbered reproduction steps using <ol><li> tags
+5. Highlight important elements using <strong> tags
+6. Organize content with clear section headers using <h3> tags
+7. Structure the output to include:
+   - Brief description of what the proof demonstrates
+   - Numbered reproduction steps
+   - HTTP requests/responses in code blocks (preserve original formatting)
+   - Any relevant output (DNS interactions, error messages, responses, etc.)
+   - Explanation of the impact demonstrated
+
+Return ONLY the formatted HTML content. Do not include markdown formatting, code fences, or any text outside the HTML.`;
+
+            // Call OpenAI API
+            const completion = await openai.chat.completions.create({
+                model: aiSettings.model,
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a cybersecurity professional formatting proof-of-concept data for penetration testing reports. Output only valid HTML suitable for a rich text editor. Do not wrap output in markdown code blocks."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                max_tokens: 3000,
+                temperature: 0.3,
+            });
+
+            let formattedProof = completion.choices[0].message.content.trim();
+
+            // Clean up any markdown code fences if present
+            formattedProof = formattedProof
+                .replace(/^```html\n?/i, '')
+                .replace(/^```\n?/i, '')
+                .replace(/\n?```$/i, '')
+                .trim();
+
+            Response.Ok(res, { formattedProof: formattedProof });
+
+        } catch (error) {
+            console.error('AI Format Proof Error:', error);
+
+            // Handle specific error types
+            if (error.code === 'insufficient_quota') {
+                Response.BadParameters(res, 'OpenAI API quota exceeded. Please try again later.');
+            } else if (error.code === 'rate_limit_exceeded') {
+                Response.BadParameters(res, 'OpenAI API rate limit exceeded. Please try again later.');
+            } else if (error.message && error.message.includes('API key')) {
+                Response.BadParameters(res, 'Invalid OpenAI API key configuration.');
+            } else {
+                Response.BadParameters(res, 'Failed to format proof with AI. Please try again.');
+            }
         }
     });
 

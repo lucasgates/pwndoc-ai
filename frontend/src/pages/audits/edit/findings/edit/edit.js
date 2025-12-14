@@ -37,6 +37,14 @@ export default {
             aiCheckLoading: false,
             aiAnalysis: null,
             aiCorrectedText: {},
+            // AI Format Proof
+            aiFormatProofLoading: false,
+            aiRawProofInput: '',
+            aiFormatProofLocale: 'en',
+            aiFormatProofLocaleOptions: [
+                { label: 'English (US)', value: 'en' },
+                { label: 'Português (BR)', value: 'pt-BR' }
+            ],
             // Comments
             commentTemp: null,
             replyTemp: null,
@@ -921,6 +929,90 @@ export default {
                 textColor: 'white',
                 position: 'top-right',
                 timeout: 3000
+            })
+        },
+
+        // AI Format Proof functionality
+        showAiFormatProofModal: function() {
+            console.log('showAiFormatProofModal called')
+            console.log('aiFormatProofModal ref:', this.$refs.aiFormatProofModal)
+            this.aiRawProofInput = ''
+            this.aiFormatProofLocale = 'en'
+            if (this.$refs.aiFormatProofModal) {
+                this.$refs.aiFormatProofModal.show()
+            } else {
+                console.error('aiFormatProofModal ref not found!')
+            }
+        },
+
+        closeAiFormatProofModal: function() {
+            this.aiRawProofInput = ''
+            this.aiFormatProofLoading = false
+        },
+
+        formatProofWithAI: function() {
+            if (!this.aiRawProofInput.trim()) {
+                Notify.create({
+                    message: 'Please paste raw proof data',
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right',
+                    timeout: 3000
+                })
+                return
+            }
+
+            this.aiFormatProofLoading = true
+
+            AuditService.aiFormatProof(
+                this.auditId,
+                this.findingId,
+                this.aiRawProofInput,
+                this.aiFormatProofLocale
+            )
+            .then((response) => {
+                this.aiFormatProofLoading = false
+
+                if (response.data && response.data.datas && response.data.datas.formattedProof) {
+                    // Append formatted proof to existing poc content
+                    const currentPoc = this.finding.poc || ''
+                    const separator = currentPoc ? '<p></p>' : ''
+                    this.finding.poc = currentPoc + separator + response.data.datas.formattedProof
+
+                    // Sync editors to reflect changes
+                    this.$nextTick(() => {
+                        Utils.syncEditors(this.$refs)
+                    })
+
+                    this.$refs.aiFormatProofModal.hide()
+
+                    Notify.create({
+                        message: 'Proof formatted successfully with AI',
+                        color: 'positive',
+                        textColor: 'white',
+                        position: 'top-right',
+                        timeout: 3000
+                    })
+                } else {
+                    throw new Error('Invalid response format')
+                }
+            })
+            .catch((error) => {
+                this.aiFormatProofLoading = false
+                console.error('AI Format Proof Error:', error)
+
+                let errorMessage = 'Failed to format proof with AI'
+                if (error.response && error.response.data && error.response.data.datas) {
+                    errorMessage = error.response.data.datas
+                }
+
+                Notify.create({
+                    message: errorMessage,
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right',
+                    timeout: 5000
+                })
             })
         }
     }
