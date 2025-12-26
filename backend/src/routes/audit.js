@@ -689,21 +689,54 @@ ${req.body.rawProof}
 
 Language: ${languageInstruction}
 
+Example output 1:
+
+Outdated JavaScript - https://example.net/js/jquery.js
+
+Steps to reproduce:
+    1. Visit the URL: https://example.net/js/jquery.js
+    2. Observe the version number of jQuery is outdated.
+
+
+Example output 2:
+
+Affected Endpoint - https://example.net/audit/add
+
+Steps to reproduce:
+    1. Create a POST request with the following data:
+       name=Bob<script>alert(432)</script>
+    2. Visit the page and note the pop up alert.
+
+
+Affected Endpoint - https://example.net/audit/edit
+
+Steps to reproduce:
+    1. Create a POST request with the following data:
+       name=Bob<script>alert(432)</script>
+    2. Visit the page and note the pop up alert.
+
+
+
 Requirements:
 1. Use <pre><code class="language-http"> tags for HTTP requests/responses
 2. Use <pre><code class="language-plaintext"> for generic code/output, DNS interactions, or other technical output
 3. Use <p> tags for explanatory text
 4. Create clear numbered reproduction steps using <ol><li> tags
 5. Highlight important elements using <strong> tags
-6. Organize content with clear section headers using <h3> tags
+6. Organize content with clear section headers using <h5> tags
 7. Structure the output to include:
    - Brief description of what the proof demonstrates
    - Numbered reproduction steps
    - HTTP requests/responses in code blocks (preserve original formatting)
    - Any relevant output (DNS interactions, error messages, responses, etc.)
    - Explanation of the impact demonstrated
+8. Put the path of the vulnerability toward the top of the description. 
+9. Vulnerability description, impact, remediation, and references not needed. These are in different parts of the application.
+10. For the command input, command output, HTTP data, don't remove any data. Include the full requests and responses.
+11. If the output is simply the output of a file, such as a JavaScript file, the instructions should be for them view the URL in a browser and observe the file for the issue.
+12. Don't separate the HTTP Response header from the HTTP Body.
 
-Return ONLY the formatted HTML content. Do not include markdown formatting, code fences, or any text outside the HTML.`;
+Return ONLY the formatted HTML content. Do not include markdown formatting, code fences, or any text outside the HTML. `;
 
             // Call OpenAI API
             const completion = await openai.chat.completions.create({
