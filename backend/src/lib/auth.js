@@ -41,6 +41,10 @@ var builtInRoles = {
             // Images
             'images:create',
             'images:read',
+            // Files
+            'files:create',
+            'files:read',
+            'files:delete',
             // Clients
             'clients:create',
             'clients:read',

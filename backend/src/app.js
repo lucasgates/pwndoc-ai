@@ -55,6 +55,7 @@ require('./models/vulnerability-category');
 require('./models/custom-section');
 require('./models/custom-field');
 require('./models/image');
+require('./models/file');
 require('./models/settings');
 
 // Socket IO configuration
@@ -128,6 +129,7 @@ require('./routes/template')(app);
 require('./routes/vulnerability')(app);
 require('./routes/data')(app);
 require('./routes/image')(app);
+require('./routes/file')(app);
 require('./routes/settings')(app);
 require('./routes/backup')(app);
 

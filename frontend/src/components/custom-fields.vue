@@ -244,6 +244,83 @@
                         <q-icon name="add_comment" size="xs" />
                     </q-badge>
                 </q-field>
+
+                <q-field
+                :id="`field-${field.customField.label}`"
+                :ref="`field-${idx}-${idx2}`"
+                v-if="field.customField.fieldType === 'file'"
+                :label="field.customField.label"
+                stack-label
+                :value="field.text"
+                :hint="field.customField.description"
+                hide-bottom-space
+                outlined
+                :readonly="readonly"
+                :class="{'highlighted-border': fieldHighlighted == `field-${field.customField.label}` && commentMode}"
+                :bg-color="(isTextInCustomFields(field))?'diffbackground':null"
+                :rules="(field.customField.required)? [val => !!val || 'Field is required']: []"
+                lazy-rules="ondemand"
+                >
+                    <template v-slot:control>
+                        <div class="full-width">
+                            <div v-if="!field.text || !field.text.fileId">
+                                <q-file
+                                v-model="fileInputs[`${idx}-${idx2}`]"
+                                :label="$t('selectFile')"
+                                outlined
+                                dense
+                                :accept="acceptedFileTypes"
+                                :max-file-size="26214400"
+                                :disable="readonly"
+                                @input="handleFileUpload(field, `${idx}-${idx2}`)"
+                                @rejected="onFileRejected"
+                                >
+                                    <template v-slot:prepend>
+                                        <q-icon name="attach_file" />
+                                    </template>
+                                </q-file>
+                            </div>
+                            <div v-else class="row items-center q-gutter-sm">
+                                <q-chip
+                                color="primary"
+                                text-color="white"
+                                icon="description"
+                                >
+                                    {{ field.text.fileName }}
+                                    <q-tooltip>{{ formatFileSize(field.text.fileSize) }}</q-tooltip>
+                                </q-chip>
+                                <q-btn
+                                flat
+                                round
+                                dense
+                                color="primary"
+                                icon="download"
+                                @click="downloadFile(field.text.fileId, field.text.fileName)"
+                                :disable="readonly"
+                                >
+                                    <q-tooltip>{{ $t('downloadFile') }}</q-tooltip>
+                                </q-btn>
+                                <q-btn
+                                flat
+                                round
+                                dense
+                                color="negative"
+                                icon="delete"
+                                @click="removeFile(field)"
+                                :disable="readonly"
+                                >
+                                    <q-tooltip>{{ $t('removeFile') }}</q-tooltip>
+                                </q-btn>
+                            </div>
+                        </div>
+                    </template>
+                    <template v-slot:label>
+                        {{field.customField.label}} <span v-if="field.customField.required" class="text-red">*</span>
+                    </template>
+                    <q-badge v-if="commentMode && canCreateComment" color="deep-purple" floating class="cursor-pointer" @click="createComment(`field-${field.customField.label}`)">
+                        <q-icon name="add_comment" size="xs" />
+                    </q-badge>
+                </q-field>
             </div>
         </div>
     </component>
@@ -252,6 +329,8 @@
 
 <script>
 import BasicEditor from 'components/editor/Editor.vue';
+import FileService from '@/services/file';
+import { Notify } from 'quasar';
 
 export default {
     name: 'custom-fields',
@@ -305,7 +384,8 @@ export default {
 
     data: function() {
         return {
-            
+            fileInputs: {},
+            acceptedFileTypes: '.pdf,.doc,.docx,.txt,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.zip'
         }
     },
 
@@ -367,6 +447,116 @@ export default {
             return options
             .filter(e => e.locale === this.locale)
             .map(e => {return {label: e.value, value: e.value}})
+        },
+
+        handleFileUpload: async function(field, inputKey) {
+            const file = this.fileInputs[inputKey]
+            if (!file) return
+
+            try {
+                const reader = new FileReader()
+                reader.onload = async (e) => {
+                    const base64 = e.target.result
+                    const fileData = {
+                        value: base64,
+                        name: file.name,
+                        mimeType: file.type || 'application/octet-stream'
+                    }
+
+                    try {
+                        const response = await FileService.createFile(fileData)
+                        field.text = {
+                            fileId: response.data.datas._id,
+                            fileName: response.data.datas.name,
+                            fileSize: response.data.datas.size
+                        }
+                        this.fileInputs[inputKey] = null
+                        Notify.create({
+                            message: this.$t('fileUploadedOk'),
+                            color: 'positive',
+                            textColor: 'white',
+                            position: 'top-right'
+                        })
+                    } catch (err) {
+                        Notify.create({
+                            message: err.response?.data?.datas || this.$t('fileUploadError'),
+                            color: 'negative',
+                            textColor: 'white',
+                            position: 'top-right'
+                        })
+                    }
+                }
+                reader.readAsDataURL(file)
+            } catch (err) {
+                console.error('File upload error:', err)
+            }
+        },
+
+        downloadFile: async function(fileId, fileName) {
+            try {
+                const response = await FileService.downloadFile(fileId)
+                const url = window.URL.createObjectURL(new Blob([response.data]))
+                const link = document.createElement('a')
+                link.href = url
+                link.setAttribute('download', fileName)
+                document.body.appendChild(link)
+                link.click()
+                link.remove()
+                window.URL.revokeObjectURL(url)
+            } catch (err) {
+                Notify.create({
+                    message: err.response?.data?.datas || this.$t('fileDownloadError'),
+                    color: 'negative',
+                    textColor: 'white',
+                    position: 'top-right'
+                })
+            }
+        },
+
+        removeFile: async function(field) {
+            if (field.text && field.text.fileId) {
+                try {
+                    await FileService.deleteFile(field.text.fileId)
+                    field.text = ''
+                    Notify.create({
+                        message: this.$t('fileRemovedOk'),
+                        color: 'positive',
+                        textColor: 'white',
+                        position: 'top-right'
+                    })
+                } catch (err) {
+                    Notify.create({
+                        message: err.response?.data?.datas || this.$t('fileRemoveError'),
+                        color: 'negative',
+                        textColor: 'white',
+                        position: 'top-right'
+                    })
+                }
+            }
+        },
+
+        onFileRejected: function(rejectedEntries) {
+            const reason = rejectedEntries[0]?.failedPropValidation
+            let message = this.$t('fileRejected')
+            if (reason === 'max-file-size') {
+                message = this.$t('fileTooLarge')
+            } else if (reason === 'accept') {
+                message = this.$t('fileTypeNotAllowed')
+            }
+            Notify.create({
+                message: message,
+                color: 'negative',
+                textColor: 'white',
+                position: 'top-right'
+            })
+        },
+
+        formatFileSize: function(bytes) {
+            if (bytes === 0) return '0 Bytes'
+            const k = 1024
+            const sizes = ['Bytes', 'KB', 'MB', 'GB']
+            const i = Math.floor(Math.log(bytes) / Math.log(k))
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
         }
     }
 }

@@ -32,6 +32,7 @@ module.exports = function(app) {
     const Company = require('mongoose').model('Company');
     const CustomField = require('mongoose').model('CustomField');
     const CustomSection = require('mongoose').model('CustomSection');
+    const File = require('mongoose').model('File');
     const Language = require('mongoose').model('Language');
     const Settings = require('mongoose').model('Settings');
     const Template = require('mongoose').model('Template');
@@ -321,6 +322,7 @@ module.exports = function(app) {
             "Vulnerability Types",
             "Vulnerability Categories",
             "Settings",
+            "Files",
         ]
         let backup = {
             name: 'backup',
@@ -401,6 +403,11 @@ module.exports = function(app) {
             // Settings
             if (e === "Settings") {
                 backupPromises.push(Settings.backup(backupTmpPath))
+            }
+
+            // Files
+            if (e === "Files") {
+                backupPromises.push(File.backup(backupTmpPath))
             }
         })
 
@@ -660,6 +667,7 @@ module.exports = function(app) {
             "Vulnerability Types",
             "Vulnerability Categories",
             "Settings",
+            "Files",
         ]
         let backupData = []
         let info = {}
@@ -779,6 +787,11 @@ module.exports = function(app) {
                 files.push('settings.json')
             }
 
+            // Files
+            if (info.data.includes('Files') && backupData.includes('Files')) {
+                files.push('files.json')
+            }
+
             if (!fs.existsSync(restoreTmpPath))
                 fs.mkdirSync(restoreTmpPath)
 
@@ -847,8 +860,13 @@ module.exports = function(app) {
             if (info.data.includes('Settings') && backupData.includes('Settings')) {
                 restorePromises.push(Settings.restore(restoreTmpPath))
             }
-            
-            
+
+            // Files
+            if (info.data.includes('Files') && backupData.includes('Files')) {
+                restorePromises.push(File.restore(restoreTmpPath, restoreMode))
+            }
+
+
             // return Promise.allSettled(restorePromises)
             return processPromisesSequentially(restorePromises)
         })

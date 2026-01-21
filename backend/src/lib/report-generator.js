@@ -125,6 +125,14 @@ String.prototype.format = function () {
     });
 };
 
+// Helper function to format file size for reports
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
 
 function parser(tag) {
     // We write an exception to handle the tag "$pageBreakExceptLast"
@@ -527,6 +535,8 @@ async function prepAuditData(data, settings) {
 
             if (fieldType === 'text')
                 result[_.deburr(label.toLowerCase()).replace(/\s/g, '')] = await splitHTMLParagraphs(field.text)
+            else if (fieldType === 'file' && field.text && field.text.fileName)
+                result[_.deburr(label.toLowerCase()).replace(/\s/g, '')] = `${field.text.fileName} (${formatFileSize(field.text.fileSize)})`
             else if (fieldType !== 'space')
                 result[_.deburr(label.toLowerCase()).replace(/\s/g, '')] = field.text
         }
@@ -679,6 +689,8 @@ async function prepAuditData(data, settings) {
                 }
                 if (fieldType === 'text')
                     tmpFinding[_.deburr(label.toLowerCase()).replace(/\s/g, '').replace(/[^\w]/g, '_')] = await splitHTMLParagraphs(field.text)
+                else if (fieldType === 'file' && field.text && field.text.fileName)
+                    tmpFinding[_.deburr(label.toLowerCase()).replace(/\s/g, '').replace(/[^\w]/g, '_')] = `${field.text.fileName} (${formatFileSize(field.text.fileSize)})`
                 else if (fieldType !== 'space')
                     tmpFinding[_.deburr(label.toLowerCase()).replace(/\s/g, '').replace(/[^\w]/g, '_')] = field.text
             }
@@ -714,6 +726,8 @@ async function prepAuditData(data, settings) {
                 var label = field.customField.label
                 if (fieldType === 'text')
                     formatSection[_.deburr(label.toLowerCase()).replace(/\s/g, '').replace(/[^\w]/g, '_')] = await splitHTMLParagraphs(field.text)
+                else if (fieldType === 'file' && field.text && field.text.fileName)
+                    formatSection[_.deburr(label.toLowerCase()).replace(/\s/g, '').replace(/[^\w]/g, '_')] = `${field.text.fileName} (${formatFileSize(field.text.fileSize)})`
                 else if (fieldType !== 'space')
                     formatSection[_.deburr(label.toLowerCase()).replace(/\s/g, '').replace(/[^\w]/g, '_')] = field.text
             }

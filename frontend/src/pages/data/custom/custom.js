@@ -73,6 +73,7 @@ export default {
                 {label: $t('checkbox'), value: 'checkbox', icon: 'check_box'},
                 {label: $t('date'), value: 'date', icon: 'event'},
                 {label: $t('editor'), value: 'text', icon: 'mdi-format-pilcrow'},
+                {label: $t('fileUpload'), value: 'file', icon: 'attach_file'},
                 {label: $t('input'), value: 'input', icon: 'title'},
                 {label: $t('radio'), value: 'radio', icon: 'radio_button_checked'},
                 {label: $t('select'), value: 'select', icon: 'far fa-caret-square-down'},
