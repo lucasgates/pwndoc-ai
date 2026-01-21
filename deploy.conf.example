@@ -1,0 +1,24 @@
+# PwnDoc-AI Deployment Configuration
+# Copy this file to deploy.conf and customize for your environment
+
+# Remote server connection
+REMOTE_HOST="your-server.example.com"
+REMOTE_USER="deploy"
+REMOTE_PORT="22"
+
+# SSH key (optional - leave empty to use default ~/.ssh/ keys)
+SSH_KEY=""  # e.g., "/home/user/.ssh/pwndoc_deploy_key"
+
+# Path on remote server where PwnDoc-AI is installed
+REMOTE_PATH="/opt/pwndoc-ai"
+
+# Backup settings
+BACKUP_DIR="~/pwndoc-backups"
+BACKUP_RETENTION=5  # Number of backups to keep
+
+# Health check settings
+HEALTH_CHECK_TIMEOUT=60  # Seconds to wait for services to be healthy
+HEALTH_CHECK_URL="https://localhost:8443"
+
+# Docker compose command (docker-compose or docker compose)
+DOCKER_COMPOSE="docker compose"

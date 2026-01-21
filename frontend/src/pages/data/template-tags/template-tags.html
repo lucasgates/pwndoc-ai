@@ -1,0 +1,476 @@
+<div>
+    <div class="row">
+        <div class="col-md-10 col-12 offset-md-1 q-mt-md">
+            <!-- Header with search and controls -->
+            <q-card class="q-mb-md">
+                <q-card-section>
+                    <div class="text-h5 q-mb-sm">{{$t('templateTags')}}</div>
+                    <div class="text-caption text-grey q-mb-md">{{$t('templateTagsDescription')}}</div>
+                    <div class="row items-center q-col-gutter-md">
+                        <div class="col-md-6 col-12">
+                            <q-input
+                                v-model="searchQuery"
+                                :label="$t('searchTags')"
+                                outlined
+                                dense
+                                clearable
+                            >
+                                <template v-slot:prepend>
+                                    <q-icon name="search" />
+                                </template>
+                            </q-input>
+                        </div>
+                        <div class="col-md-6 col-12 text-right">
+                            <q-btn flat :label="$t('expandAll')" @click="expandAll" class="q-mr-sm" icon="unfold_more" />
+                            <q-btn flat :label="$t('collapseAll')" @click="collapseAll" icon="unfold_less" />
+                        </div>
+                    </div>
+                </q-card-section>
+            </q-card>
+
+            <!-- No results message -->
+            <q-card class="q-mb-md" v-if="searchQuery && !hasFilteredResults">
+                <q-card-section class="text-center text-grey">
+                    <q-icon name="search_off" size="48px" class="q-mb-sm" />
+                    <div>{{$t('noTagsFound')}}</div>
+                </q-card-section>
+            </q-card>
+
+            <!-- Static Tags -->
+            <q-card class="q-mb-md" v-if="Object.keys(filteredStaticTags).length > 0">
+                <q-card-section>
+                    <div class="text-h6">{{$t('staticTags')}}</div>
+                    <div class="text-caption text-grey">{{$t('staticTagsDescription')}}</div>
+                </q-card-section>
+
+                <!-- Audit Info Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.auditInfo"
+                    v-model="expandedSections.auditInfo"
+                    icon="fa fa-info-circle"
+                    :label="$t('auditInfoTags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.auditInfo" :key="tag.tag" class="tag-item" :class="{'nested-tag': tag.nested}">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- Company Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.company"
+                    v-model="expandedSections.company"
+                    icon="fa fa-building"
+                    :label="$t('companyTags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.company" :key="tag.tag" class="tag-item">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- Client Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.client"
+                    v-model="expandedSections.client"
+                    icon="fa fa-user-tie"
+                    :label="$t('clientTags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.client" :key="tag.tag" class="tag-item">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- Creator Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.creator"
+                    v-model="expandedSections.creator"
+                    icon="fa fa-user"
+                    :label="$t('creatorTags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.creator" :key="tag.tag" class="tag-item">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- Collaborators Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.collaborators"
+                    v-model="expandedSections.collaborators"
+                    icon="fa fa-users"
+                    :label="$t('collaboratorsTags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.collaborators" :key="tag.tag" class="tag-item" :class="{'nested-tag': tag.nested}">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- Reviewers Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.reviewers"
+                    v-model="expandedSections.reviewers"
+                    icon="fa fa-user-check"
+                    :label="$t('reviewersTags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.reviewers" :key="tag.tag" class="tag-item" :class="{'nested-tag': tag.nested}">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- Scope Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.scope"
+                    v-model="expandedSections.scope"
+                    icon="fa fa-crosshairs"
+                    :label="$t('scopeTags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.scope" :key="tag.tag" class="tag-item" :class="{'nested-tag': tag.nested}">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- Findings Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.findings"
+                    v-model="expandedSections.findings"
+                    icon="fa fa-bug"
+                    :label="$t('findingsTags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.findings" :key="tag.tag" class="tag-item" :class="{'nested-tag': tag.nested}">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- CVSS 3.1 Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.cvss3"
+                    v-model="expandedSections.cvss3"
+                    icon="fa fa-shield-alt"
+                    :label="$t('cvss3Tags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.cvss3" :key="tag.tag" class="tag-item" :class="{'nested-tag': tag.nested}">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- CVSS 4.0 Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.cvss4"
+                    v-model="expandedSections.cvss4"
+                    icon="fa fa-shield-alt"
+                    :label="$t('cvss4Tags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.cvss4" :key="tag.tag" class="tag-item" :class="{'nested-tag': tag.nested}">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- Categories Section -->
+                <q-expansion-item
+                    v-if="filteredStaticTags.categories"
+                    v-model="expandedSections.categories"
+                    icon="fa fa-folder"
+                    :label="$t('categoriesTags')"
+                    header-class="expansion-header"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredStaticTags.categories" :key="tag.tag" class="tag-item" :class="{'nested-tag': tag.nested}">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+            </q-card>
+
+            <!-- Dynamic Tags - Custom Sections -->
+            <q-card class="q-mb-md" v-if="filteredDynamicSectionTags.length > 0">
+                <q-card-section>
+                    <div class="text-h6">{{$t('customSectionTags')}}</div>
+                    <div class="text-caption text-grey">{{$t('customSectionTagsDescription')}}</div>
+                </q-card-section>
+
+                <q-expansion-item
+                    v-for="section in filteredDynamicSectionTags"
+                    :key="section.sectionField"
+                    icon="fa fa-folder-open"
+                    :label="section.sectionName + ' ({' + section.sectionField + '})'"
+                    header-class="expansion-header"
+                    v-model="expandedSections.customSections"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in section.tags" :key="tag.tag" class="tag-item">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+            </q-card>
+
+            <!-- Dynamic Tags - Custom Fields -->
+            <q-card class="q-mb-md" v-if="filteredAuditFieldTags.length > 0 || filteredFindingFieldTags.length > 0">
+                <q-card-section>
+                    <div class="text-h6">{{$t('customFieldTags')}}</div>
+                    <div class="text-caption text-grey">{{$t('customFieldTagsDescription')}}</div>
+                </q-card-section>
+
+                <!-- Audit-level custom fields -->
+                <q-expansion-item
+                    v-if="filteredAuditFieldTags.length > 0"
+                    icon="fa fa-file-alt"
+                    :label="$t('auditLevelFields')"
+                    header-class="expansion-header"
+                    v-model="expandedSections.customFields"
+                >
+                    <q-list separator>
+                        <q-item v-for="tag in filteredAuditFieldTags" :key="tag.tag" class="tag-item">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+
+                <!-- Finding-level custom fields -->
+                <q-expansion-item
+                    v-if="filteredFindingFieldTags.length > 0"
+                    icon="fa fa-bug"
+                    :label="$t('findingLevelFields')"
+                    header-class="expansion-header"
+                >
+                    <q-banner class="bg-orange-2 q-mb-sm">
+                        <template v-slot:avatar>
+                            <q-icon name="info" color="orange" />
+                        </template>
+                        {{$t('findingLevelFieldsNote')}}
+                    </q-banner>
+                    <q-list separator>
+                        <q-item v-for="tag in filteredFindingFieldTags" :key="tag.tag" class="tag-item">
+                            <q-item-section avatar>
+                                <q-icon :name="getTypeIcon(tag.type)" :color="getTypeColor(tag.type)" />
+                            </q-item-section>
+                            <q-item-section>
+                                <q-item-label class="text-weight-medium font-mono">{{tag.tag}}</q-item-label>
+                                <q-item-label caption>{{tag.description}}</q-item-label>
+                            </q-item-section>
+                            <q-item-section side>
+                                <div class="row items-center">
+                                    <q-badge :color="getTypeColor(tag.type)" :label="getTypeLabel(tag.type)" class="q-mr-sm" />
+                                    <q-btn flat round dense icon="content_copy" @click="copyTag(tag.tag)" size="sm">
+                                        <q-tooltip>{{$t('copyTag')}}</q-tooltip>
+                                    </q-btn>
+                                </div>
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+            </q-card>
+
+        </div>
+    </div>
+</div>

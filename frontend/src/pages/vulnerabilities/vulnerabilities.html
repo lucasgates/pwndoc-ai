@@ -244,6 +244,13 @@
             </q-field>
         </q-card-section>
         <q-card-section>
+            <q-field borderless :label="$t('proofTemplate')" stack-label>
+                <template v-slot="control">
+                    <basic-editor noAffix v-model="currentVulnerability.details[currentDetailsIndex].poc" />
+                </template>
+            </q-field>
+        </q-card-section>
+        <q-card-section>
             <div class="q-col-gutter-md row">
                 <q-select
                 :label="$t('remediationComplexity')"
@@ -273,16 +280,16 @@
             <textarea-array :label="$t('references')" v-model="currentVulnerability.details[currentDetailsIndex].references" />
         </q-card-section>
 
-        <q-expansion-item 
+        <q-expansion-item
         :label="$t('customFields')"
         default-opened
-        header-class="bg-blue-grey-5 text-white" 
+        header-class="bg-blue-grey-5 text-white"
         expand-icon-class="text-white"
         >
-            <custom-fields 
-            ref="customfields" 
-            v-model="currentVulnerability.details[currentDetailsIndex].customFields" 
-            :category="currentVulnerability.category" 
+            <custom-fields
+            ref="customfields"
+            v-model="currentVulnerability.details[currentDetailsIndex].customFields"
+            :category="currentVulnerability.category"
             custom-element="QCardSection"
             display="vuln"
             :locale="currentLanguage"
@@ -415,6 +422,13 @@
             </q-field>
         </q-card-section>
         <q-card-section>
+            <q-field borderless :label="$t('proofTemplate')" stack-label class="basic-editor">
+                <template v-slot="control">
+                    <basic-editor noAffix v-model="currentVulnerability.details[currentDetailsIndex].poc" />
+                </template>
+            </q-field>
+        </q-card-section>
+        <q-card-section>
             <div class="q-col-gutter-md row">
                 <q-select
                 :label="$t('remediationComplexity')"
@@ -444,14 +458,14 @@
             <textarea-array :label="$t('references')" v-model="currentVulnerability.details[currentDetailsIndex].references" />
         </q-card-section>
 
-        <q-expansion-item 
+        <q-expansion-item
         :label="$t('customFields')"
         default-opened
-        header-class="bg-blue-grey-5 text-white" 
+        header-class="bg-blue-grey-5 text-white"
         expand-icon-class="text-white">
-            <custom-fields 
-            ref="customfields" 
-            v-model="currentVulnerability.details[currentDetailsIndex].customFields" 
+            <custom-fields
+            ref="customfields"
+            v-model="currentVulnerability.details[currentDetailsIndex].customFields"
             custom-element="QCardSection"
             :locale="currentLanguage"
             />
@@ -562,6 +576,13 @@
                             </template>
                         </q-field>
                     </q-card-section>
+                    <q-card-section>
+                        <q-field borderless :label="$t('proofTemplate')" stack-label class="basic-editor">
+                            <template v-slot="control">
+                                <basic-editor noAffix v-model="currentVulnerability.details[currentDetailsIndex].poc" />
+                            </template>
+                        </q-field>
+                    </q-card-section>
                     <q-card-section class="q-col-gutter-md row">
                         <q-select
                         :label="$t('remediationComplexity')"
@@ -590,15 +611,15 @@
                         <textarea-array :label="$t('references')" v-model="currentVulnerability.details[currentDetailsIndex].references" />
                     </q-card-section>
 
-                    <q-expansion-item 
+                    <q-expansion-item
                     :label="$t('customFields')"
                     default-opened
-                    header-class="bg-blue-grey-5 text-white" 
+                    header-class="bg-blue-grey-5 text-white"
                     expand-icon-class="text-white">
                         <div v-if="currentVulnerability.details[currentDetailsIndex].customFields">
-                            <custom-fields 
-                            ref="customfields" 
-                            v-model="currentVulnerability.details[currentDetailsIndex].customFields" 
+                            <custom-fields
+                            ref="customfields"
+                            v-model="currentVulnerability.details[currentDetailsIndex].customFields"
                             custom-element="QCardSection"
                             :locale="currentLanguage"
                             />
@@ -606,7 +627,7 @@
                     </q-expansion-item>
 
                     <q-separator />
-            
+
                     <q-card-actions align="right">
                         <q-btn color="primary" outline @click="$refs.updatesModal.hide()">{{$t('btn.cancel')}}</q-btn>
                         <q-btn color="orange" unelevated :label="$t('btn.update')" @click="updateVulnerability()" />
@@ -722,9 +743,9 @@
                                 />
                             </q-card-section>
                             <q-card-section>
-                                <q-field 
-                                borderless 
-                                :label="$t('remediation')" 
+                                <q-field
+                                borderless
+                                :label="$t('remediation')"
                                 stack-label
                                 :class="
                                 (currentVulnerability.details[currentDetailsIndex].remediation || update.remediation) &&
@@ -734,9 +755,29 @@
                                 class="basic-editor toolbar-padding"
                                 readonly>
                                     <template v-slot="control">
-                                        <basic-editor noAffix 
-                                        v-model="update.remediation" 
+                                        <basic-editor noAffix
+                                        v-model="update.remediation"
                                         :diff="currentVulnerability.details[currentDetailsIndex].remediation || ''"
+                                        :editable=false />
+                                    </template>
+                                </q-field>
+                            </q-card-section>
+                            <q-card-section>
+                                <q-field
+                                borderless
+                                :label="$t('proofTemplate')"
+                                stack-label
+                                :class="
+                                (currentVulnerability.details[currentDetailsIndex].poc || update.poc) &&
+                                (currentVulnerability.details[currentDetailsIndex].poc != update.poc)
+                                ?'bg-diffbackground':''
+                                "
+                                class="basic-editor toolbar-padding"
+                                readonly>
+                                    <template v-slot="control">
+                                        <basic-editor noAffix
+                                        v-model="update.poc"
+                                        :diff="currentVulnerability.details[currentDetailsIndex].poc || ''"
                                         :editable=false />
                                     </template>
                                 </q-field>

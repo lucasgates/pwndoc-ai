@@ -30,6 +30,12 @@
                 </q-item-section>
                 <q-item-section>{{$t('templates')}}</q-item-section>
             </q-item>
+            <q-item to='/data/template-tags'>
+                <q-item-section avatar>
+                    <q-icon name="fa fa-code" />
+                </q-item-section>
+                <q-item-section>{{$t('templateTags')}}</q-item-section>
+            </q-item>
 
             <q-separator spaced />
 
@@ -46,6 +52,7 @@
                 </q-item-section>
                 <q-item-section>{{$t('import')}} / {{$t('export')}}</q-item-section>
             </q-item>
+
         </q-list>
     </q-drawer>
     <router-view />     

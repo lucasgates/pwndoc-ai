@@ -382,6 +382,7 @@ export default {
                     description: '',
                     observation: '',
                     remediation: '',
+                    poc: '',
                     references: [],
                     customFields: []
                 }
