@@ -185,7 +185,7 @@
                 :label="field.customField.label"
                 stack-label
                 :value="field.text"
-                :hint="field.description"
+                :hint="field.customField.description"
                 hide-bottom-space
                 outlined
                 :readonly="readonly"
@@ -219,7 +219,7 @@
                 :label="field.customField.label"
                 stack-label
                 :value="field.text"
-                :hint="field.description"
+                :hint="field.customField.description"
                 hide-bottom-space
                 outlined
                 :readonly="readonly"
