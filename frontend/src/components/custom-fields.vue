@@ -15,34 +15,33 @@
                     'highlighted-border': fieldHighlighted == `field-${field.customField.label}` && commentMode
                 }"
                 class="basic-editor"
-                :hint="field.customField.description"
                 hide-bottom-space
                 :rules="(field.customField.required)? [val => !!val || 'Field is required']: []"
                 lazy-rules="ondemand"
                 :value="field.text"
                 >
                     <template v-slot:control>
-                        <basic-editor 
+                        <basic-editor
                         v-if="diff"
                         v-model="field.text"
                         :diff="getTextDiffInCustomFields(field)"
                         :editable=false
-                        /> 
-                        <basic-editor 
+                        />
+                        <basic-editor
                         v-else
-                        ref="basiceditor_custom" 
-                        v-model="field.text" 
+                        ref="basiceditor_custom"
+                        v-model="field.text"
                         :noSync="noSyncEditor"
                         :editable="!readonly"
                         :fieldName="`field-${field.customField.label}`"
                         :commentMode="commentMode && canCreateComment"
                         :focusedComment="focusedComment"
                         :commentIdList="commentIdList"
-                        /> 
+                        />
                     </template>
 
                     <template v-slot:label>
-                        {{field.customField.label}} <span v-if="field.customField.required" class="text-red">*</span>
+                        {{field.customField.description}} ({{field.customField.label}}) <span v-if="field.customField.required" class="text-red">*</span>
                     </template>
                 </q-field>
 
@@ -56,14 +55,13 @@
                 :class="{'highlighted-border': fieldHighlighted == `field-${field.customField.label}` && commentMode}"
                 :readonly="readonly"
                 :bg-color="(isTextInCustomFields(field))?'diffbackground':null"
-                :hint="field.customField.description"
                 hide-bottom-space
                 :rules="(field.customField.required)? [val => !!val || 'Field is required']: []"
                 lazy-rules="ondemand"
                 outlined
                 >
                     <template v-slot:label>
-                        {{field.customField.label}} <span v-if="field.customField.required" class="text-red">*</span>
+                        {{field.customField.description}} ({{field.customField.label}}) <span v-if="field.customField.required" class="text-red">*</span>
                     </template>
                     <q-badge v-if="commentMode && canCreateComment" color="deep-purple" floating class="cursor-pointer" @click="createComment(`field-${field.customField.label}`)">
                         <q-icon name="add_comment" size="xs" />
@@ -80,7 +78,6 @@
                 :class="{'highlighted-border': fieldHighlighted == `field-${field.customField.label}` && commentMode}"
                 :readonly="readonly"
                 :bg-color="(isTextInCustomFields(field))?'diffbackground':null"
-                :hint="field.customField.description"
                 hide-bottom-space
                 :rules="(field.customField.required)? [val => !!val || 'Field is required']: []"
                 lazy-rules="ondemand"
@@ -94,7 +91,7 @@
                         </q-icon>
                     </template>
                     <template v-slot:label>
-                        {{field.customField.label}} <span v-if="field.customField.required" class="text-red">*</span>
+                        {{field.customField.description}} ({{field.customField.label}}) <span v-if="field.customField.required" class="text-red">*</span>
                     </template>
                     <q-badge v-if="commentMode && canCreateComment" color="deep-purple" floating class="cursor-pointer" @click="createComment(`field-${field.customField.label}`)">
                         <q-icon name="add_comment" size="xs" />
@@ -119,13 +116,12 @@
                 :readonly="readonly"
                 :class="{'highlighted-border': fieldHighlighted == `field-${field.customField.label}` && commentMode}"
                 :bg-color="(isTextInCustomFields(field))?'diffbackground':null"
-                :hint="field.customField.description"
                 hide-bottom-space
                 :rules="(field.customField.required)? [val => !!val || 'Field is required']: []"
                 lazy-rules="ondemand"
                 >
                      <template v-slot:label>
-                        {{field.customField.label}} <span v-if="field.customField.required" class="text-red">*</span>
+                        {{field.customField.description}} ({{field.customField.label}}) <span v-if="field.customField.required" class="text-red">*</span>
                     </template>
                     <q-badge v-if="commentMode && canCreateComment" color="deep-purple" floating class="cursor-pointer" @click="createComment(`field-${field.customField.label}`)">
                         <q-icon name="add_comment" size="xs" />
@@ -148,17 +144,16 @@
                 clearable
                 @clear="field.text = []"
                 options-sanitize
-                outlined 
+                outlined
                 :readonly="readonly"
                 :class="{'highlighted-border': fieldHighlighted == `field-${field.customField.label}` && commentMode}"
                 :bg-color="(isTextInCustomFields(field))?'diffbackground':null"
-                :hint="field.customField.description"
                 hide-bottom-space
                 :rules="(field.customField.required)? [val => !!val || 'Field is required', val => val && val.length > 0 || 'Field is required']: []"
                 lazy-rules="ondemand"
                 >
                      <template v-slot:label>
-                        {{field.customField.label}} <span v-if="field.customField.required" class="text-red">*</span>
+                        {{field.customField.description}} ({{field.customField.label}}) <span v-if="field.customField.required" class="text-red">*</span>
                     </template>
                      <template v-slot:selected-item="scope">
                         <q-chip
@@ -185,7 +180,6 @@
                 :label="field.customField.label"
                 stack-label
                 :value="field.text"
-                :hint="field.customField.description"
                 hide-bottom-space
                 outlined
                 :readonly="readonly"
@@ -204,7 +198,7 @@
                         />
                     </template>
                     <template v-slot:label>
-                        {{field.customField.label}} <span v-if="field.customField.required" class="text-red">*</span>
+                        {{field.customField.description}} ({{field.customField.label}}) <span v-if="field.customField.required" class="text-red">*</span>
                     </template>
                     <q-badge v-if="commentMode && canCreateComment" color="deep-purple" floating class="cursor-pointer" @click="createComment(`field-${field.customField.label}`)">
                         <q-icon name="add_comment" size="xs" />
@@ -219,7 +213,6 @@
                 :label="field.customField.label"
                 stack-label
                 :value="field.text"
-                :hint="field.customField.description"
                 hide-bottom-space
                 outlined
                 :readonly="readonly"
@@ -238,7 +231,7 @@
                         />
                     </template>
                     <template v-slot:label>
-                        {{field.customField.label}} <span v-if="field.customField.required" class="text-red">*</span>
+                        {{field.customField.description}} ({{field.customField.label}}) <span v-if="field.customField.required" class="text-red">*</span>
                     </template>
                     <q-badge v-if="commentMode && canCreateComment" color="deep-purple" floating class="cursor-pointer" @click="createComment(`field-${field.customField.label}`)">
                         <q-icon name="add_comment" size="xs" />
@@ -252,7 +245,6 @@
                 :label="field.customField.label"
                 stack-label
                 :value="field.text"
-                :hint="field.customField.description"
                 hide-bottom-space
                 outlined
                 :readonly="readonly"
@@ -315,7 +307,7 @@
                         </div>
                     </template>
                     <template v-slot:label>
-                        {{field.customField.label}} <span v-if="field.customField.required" class="text-red">*</span>
+                        {{field.customField.description}} ({{field.customField.label}}) <span v-if="field.customField.required" class="text-red">*</span>
                     </template>
                     <q-badge v-if="commentMode && canCreateComment" color="deep-purple" floating class="cursor-pointer" @click="createComment(`field-${field.customField.label}`)">
                         <q-icon name="add_comment" size="xs" />
