@@ -55,6 +55,7 @@ export default {
         findAudits: 'Rechercher des Audits',
         delete: 'Supprimer',
         download: 'Télécharger',
+        restore: 'Restaurer',
         retestSplitView: 'Activer la vue partagée avec les données de la vulnérabilité originale',
         addAudit: 'Ajouter l\'Audit',
         restoreRevert: "Restaure à l'état de la sauvegarde. Toutes les données non présentes dans la sauvegarde seront effacées",

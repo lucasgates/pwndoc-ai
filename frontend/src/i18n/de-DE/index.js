@@ -46,6 +46,7 @@ export default {
         findAudits: 'Audits finden',
         delete: 'Löschen',
         download: 'Download',
+        restore: 'Wiederherstellen',
     },
     msg: {
         auditReviewUpdateOk: 'Prüfstatus des Audits erfolgreich aktualisiert',

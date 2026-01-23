@@ -58,6 +58,7 @@ export default {
     findAudits: 'Encontrar Auditorias',
     delete: 'Excluir',
     download: 'Baixar',
+    restore: 'Restaurar',
     retestSplitView: 'Ativar visualização dividida com dados originais de Descobertas',
     addAudit: 'Adicionar Auditoria'
 },

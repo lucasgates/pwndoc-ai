@@ -606,15 +606,26 @@
 
                 <q-td slot="body-cell-action" slot-scope="props" style="width:1px">
                     <q-btn
-                    v-if="UserService.isAllowed('backups:update')" 
-                    size="sm" 
-                    flat 
-                    color="info" 
-                    icon="fa fa-download" 
+                    v-if="UserService.isAllowed('backups:update')"
+                    size="sm"
+                    flat
+                    color="info"
+                    icon="fa fa-download"
                     @click="downloadBackup(props.row)"
                     :disabled="backupStatus.operation !== 'idle'"
                     >
                         <q-tooltip anchor="bottom middle" self="center left" :delay="500" content-class="text-bold">{{$t('tooltip.download')}}</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                    v-if="UserService.isAllowed('backups:update')"
+                    size="sm"
+                    flat
+                    color="positive"
+                    icon="fa fa-undo"
+                    @click="backupRowClick(props.row)"
+                    :disabled="backupStatus.operation !== 'idle'"
+                    >
+                        <q-tooltip anchor="bottom middle" self="center left" :delay="500" content-class="text-bold">{{$t('tooltip.restore')}}</q-tooltip>
                     </q-btn>
                     <q-btn
                     v-if="UserService.isAllowed('backups:delete')"

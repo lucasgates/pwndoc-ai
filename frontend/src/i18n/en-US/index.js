@@ -59,6 +59,7 @@ export default {
         findAudits: 'Find Audits',
         delete: 'Delete',
         download: 'Download',
+        restore: 'Restore',
         retestSplitView: 'Enable split view with original Finding data',
         addAudit: 'Add Audit',
         restoreRevert: 'Restore at the state of the backup. All data not present in the backup will be deleted',

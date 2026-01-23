@@ -50,6 +50,7 @@ export default {
         findAudits: '查找审计项目',
         delete: '删除',
         download: '下载',
+        restore: '恢复',
     },
     msg: {
         auditReviewUpdateOk: '项目审核状态更新成功',
